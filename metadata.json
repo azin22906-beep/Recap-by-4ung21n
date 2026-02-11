@@ -1,6 +1,6 @@
 {
-  "name": "4ung21n fv4",
-  "description": "PROMPT MASTER V3\nupdate note\nအသံမကြိုက်ရင် ပြန်ထုတ်လို့ရအောင်လုပ်ထားတယ်\nvideo upload ပြီး script ပြင် ပြီး အသံရွေး style ရွေး \nနေရာပြန်ရွေ့ထားတယ်\nလူနဲ့ ပိုတူအောင်လုပ်ထားတယ်\nupdate \nနာမည် တွေ English လိုပဲရေးခိုင်းထားတယ်\nupdate\nEXTRA QA RULES\", \n\"EXTRA SCENE LOCK RULES\", \"OUTPUT GUARD RULES\"",
+  "name": "Burmese Video Recapper PRO",
+  "description": "Professional AI-driven movie recap generator with Burmese TTS and factual analysis. Optimized for Netlify deployment.",
   "requestFramePermissions": [
     "camera",
     "microphone"
