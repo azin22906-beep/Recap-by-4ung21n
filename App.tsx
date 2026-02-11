@@ -3,7 +3,7 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Step, GenerationState, VideoMetadata, RecapData, Voice } from './types';
 import { VOICES } from './constants';
 import { analyzeVideo, generateTTS, wrapPcmInWav } from './services/geminiService';
-import { Play, Upload, Mic, Sliders, CheckCircle, Video, FileText, Download, RotateCcw, Volume2, Eye, Info, Speaker, Pause, User, UserCheck, RefreshCw, AlertCircle, History, ArrowLeft, XCircle, ArrowRight, Sparkles, Ghost, Zap, Heart, Megaphone, BookOpen, Smile, Skull, ShieldAlert, Radio, Wand2, Type as TypeIcon, Flame, Waves, Wind, Key, ChevronRight, Music, Copy, Check, Settings2, VolumeX, Rewind, FastForward, Activity, Cpu, Scan, Globe, Layers, Clapperboard, Film, LayoutDashboard, Share2 } from 'lucide-react';
+import { Play, Upload, Mic, Sliders, CheckCircle, Video, FileText, Download, RotateCcw, Volume2, Eye, Info, Speaker, Pause, User, UserCheck, RefreshCw, AlertCircle, History, ArrowLeft, XCircle, ArrowRight, Sparkles, Ghost, Zap, Heart, Megaphone, BookOpen, Smile, Skull, ShieldAlert, Radio, Wand2, Type as TypeIcon, Flame, Waves, Wind, Key, ChevronRight, Music, Copy, Check, Settings2, VolumeX, Rewind, FastForward, Activity, Cpu, Scan, Globe, Layers, Clapperboard, Film, LayoutDashboard, Share2, ShieldCheck, Lock, ExternalLink, Settings } from 'lucide-react';
 
 const STYLE_SUGGESTIONS = [
   {
@@ -78,7 +78,7 @@ const GlassCard: React.FC<GlassCardProps> = ({ children, className = "", onClick
 interface GlassButtonProps {
   children?: React.ReactNode;
   onClick?: () => void;
-  variant?: 'primary' | 'secondary' | 'danger' | 'ghost' | 'glass' | 'success';
+  variant?: 'primary' | 'secondary' | 'danger' | 'ghost' | 'glass' | 'success' | 'warning';
   className?: string;
   disabled?: boolean;
 }
@@ -97,7 +97,8 @@ const GlassButton: React.FC<GlassButtonProps> = ({
     danger: "bg-red-500/20 hover:bg-red-500/30 text-red-200 border border-red-500/30",
     ghost: "bg-transparent hover:bg-white/5 text-white/70 hover:text-white",
     glass: "bg-black/20 hover:bg-black/30 text-white border border-white/10 backdrop-blur-lg",
-    success: "bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_0_20px_rgba(16,185,129,0.4)] border border-emerald-400/20"
+    success: "bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_0_20px_rgba(16,185,129,0.4)] border border-emerald-400/20",
+    warning: "bg-amber-600 hover:bg-amber-500 text-white shadow-[0_0_20px_rgba(245,158,11,0.4)] border border-amber-400/20"
   };
 
   return (
@@ -179,6 +180,9 @@ const App: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isQuotaError, setIsQuotaError] = useState(false);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+  const [hasSelectedKey, setHasSelectedKey] = useState<boolean>(false);
+  const [isCheckingKey, setIsCheckingKey] = useState<boolean>(true);
+  const [showSettings, setShowSettings] = useState<boolean>(false);
   
   const [state, setState] = useState<GenerationState>({
     videoBlob: null,
@@ -202,12 +206,43 @@ const App: React.FC = () => {
   const audioRef = useRef<HTMLAudioElement>(null);
   const previewAudioRef = useRef<HTMLAudioElement>(null);
   const finalAudioRef = useRef<HTMLAudioElement>(null);
+  const settingsRef = useRef<HTMLDivElement>(null);
 
   const [videoSettings, setVideoSettings] = useState({
     speed: 1,
     isMirrored: false,
     originalMuted: true
   });
+
+  // Check for existing API key on mount
+  useEffect(() => {
+    const checkKey = async () => {
+      if (window.aistudio?.hasSelectedApiKey) {
+        try {
+          const has = await window.aistudio.hasSelectedApiKey();
+          setHasSelectedKey(has);
+        } catch (e) {
+          console.error("Error checking API key status:", e);
+        } finally {
+          setIsCheckingKey(false);
+        }
+      } else {
+        setIsCheckingKey(false);
+      }
+    };
+    checkKey();
+  }, []);
+
+  // Close settings on outside click
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (settingsRef.current && !settingsRef.current.contains(event.target as Node)) {
+        setShowSettings(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     if (videoRef.current) {
@@ -226,8 +261,11 @@ const App: React.FC = () => {
     try {
       if (window.aistudio?.openSelectKey) {
         await window.aistudio.openSelectKey();
+        // Per instructions, assume success after triggering
+        setHasSelectedKey(true);
         setErrorMessage(null);
         setIsQuotaError(false);
+        setShowSettings(false);
       }
     } catch (e) {
       console.error("Failed to open key selector", e);
@@ -268,6 +306,11 @@ const App: React.FC = () => {
 
   const playVoicePreview = async (e: React.MouseEvent, voice: Voice) => {
     e.stopPropagation();
+    if (!hasSelectedKey) {
+      handleSelectKey();
+      return;
+    }
+
     if (previewingVoice === voice.id) {
       setPreviewingVoice(null);
       if (previewAudioRef.current) previewAudioRef.current.pause();
@@ -291,7 +334,10 @@ const App: React.FC = () => {
       console.error(e);
       const msg = parseErrorMessage(e);
       setErrorMessage(msg);
-      if (msg.includes("Quota") || msg.includes("limit")) setIsQuotaError(true);
+      if (msg.includes("Quota") || msg.includes("limit") || msg.includes("entity was not found")) {
+        setIsQuotaError(true);
+        setHasSelectedKey(false);
+      }
       setPreviewingVoice(null);
     }
   };
@@ -299,12 +345,19 @@ const App: React.FC = () => {
   const parseErrorMessage = (error: any) => {
     const msg = error?.message || String(error);
     if (msg.includes("429") || msg.includes("quota") || msg.includes("RESOURCE_EXHAUSTED")) {
-      return "API Quota Exceeded. Please use your own Paid API Key.";
+      return "API Quota Exceeded. Ensure your selected API key belongs to a Paid GCP project.";
+    }
+    if (msg.includes("Requested entity was not found")) {
+      return "Project configuration not found. Please re-select a valid Paid API Key.";
     }
     return msg;
   };
 
   const handleUpdateAudio = async () => {
+    if (!hasSelectedKey) {
+      handleSelectKey();
+      return;
+    }
     if (!state.recap?.script) return;
     setIsUpdatingAudio(true);
     setErrorMessage(null);
@@ -320,13 +373,21 @@ const App: React.FC = () => {
     } catch (error) {
       const msg = parseErrorMessage(error);
       setErrorMessage(msg);
-      if (msg.includes("Quota") || msg.includes("limit")) setIsQuotaError(true);
+      if (msg.includes("Quota") || msg.includes("limit") || msg.includes("entity was not found")) {
+        setIsQuotaError(true);
+        setHasSelectedKey(false);
+      }
     } finally {
       setIsUpdatingAudio(false);
     }
   };
 
   const startAnalysisAndScript = async () => {
+    if (!hasSelectedKey) {
+      await handleSelectKey();
+      return;
+    }
+
     setStep(Step.Generating);
     setLoadingStep(1);
     setProgress(0);
@@ -381,7 +442,10 @@ const App: React.FC = () => {
       console.error(error);
       const msg = parseErrorMessage(error);
       setErrorMessage(msg);
-      if (msg.includes("Quota") || msg.includes("limit")) setIsQuotaError(true);
+      if (msg.includes("Quota") || msg.includes("limit") || msg.includes("entity was not found")) {
+        setIsQuotaError(true);
+        setHasSelectedKey(false);
+      }
       setStep(Step.Upload);
     }
   };
@@ -550,11 +614,76 @@ Viral Titles: ${state.recap.titleOptions?.join(', ')}
                 </p>
               </div>
             </div>
-            {step !== Step.Upload && (
-              <GlassButton variant="secondary" onClick={() => { setState(prev => ({...prev, videoUrl: null})); setStep(Step.Upload); }} className="!py-2.5 !px-5 !text-xs !rounded-xl">
-                 <RefreshCw className="w-3.5 h-3.5" /> Start New Project
+            
+            <div className="flex items-center gap-3 relative" ref={settingsRef}>
+              <GlassButton 
+                variant="secondary" 
+                onClick={() => setShowSettings(!showSettings)}
+                className={`!p-3 !rounded-2xl transition-all ${showSettings ? 'bg-white/20' : ''}`}
+              >
+                <Settings className={`w-6 h-6 ${!hasSelectedKey ? 'text-amber-400' : 'text-white/70'}`} />
               </GlassButton>
-            )}
+
+              {showSettings && (
+                <div className="absolute top-full right-0 mt-4 w-80 z-50 animate-in fade-in zoom-in-95 slide-in-from-top-4 duration-300">
+                  <GlassCard className="p-6 bg-black/90 backdrop-blur-2xl border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.8)]">
+                    <h3 className="text-lg font-black uppercase tracking-widest mb-6 flex items-center gap-3">
+                      <Settings2 className="w-5 h-5 text-blue-400" /> Production Studio
+                    </h3>
+
+                    <div className="space-y-6">
+                      <div>
+                        <div className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] mb-3">Connection Status</div>
+                        <div className={`flex items-center gap-3 p-4 rounded-2xl border ${hasSelectedKey ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-amber-500/10 border-amber-500/20'}`}>
+                          {hasSelectedKey ? (
+                            <>
+                              <ShieldCheck className="w-5 h-5 text-emerald-400" />
+                              <span className="text-sm font-bold text-emerald-400">Environment Verified</span>
+                            </>
+                          ) : (
+                            <>
+                              <Lock className="w-5 h-5 text-amber-400" />
+                              <span className="text-sm font-bold text-amber-400">Paid Key Required</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] mb-3">Service Control</div>
+                        <GlassButton 
+                          variant={hasSelectedKey ? "glass" : "warning"}
+                          onClick={handleSelectKey}
+                          className="w-full !py-3 !text-xs font-black uppercase tracking-widest"
+                        >
+                          <Key className="w-4 h-4" /> {hasSelectedKey ? 'Update API Key' : 'Configure Account'}
+                        </GlassButton>
+                      </div>
+
+                      <div className="pt-4 border-t border-white/5">
+                        <p className="text-[10px] text-white/30 leading-relaxed mb-4">
+                          This pro tool requires high-tier multimodal processing. You must use an API key from a Google Cloud Project with <strong>Paid Billing</strong> enabled.
+                        </p>
+                        <a 
+                          href="https://ai.google.dev/gemini-api/docs/billing" 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-blue-400 hover:text-blue-300 transition-colors"
+                        >
+                          Billing Setup Guide <ExternalLink className="w-3 h-3" />
+                        </a>
+                      </div>
+                    </div>
+                  </GlassCard>
+                </div>
+              )}
+
+              {step !== Step.Upload && (
+                <GlassButton variant="secondary" onClick={() => { setState(prev => ({...prev, videoUrl: null})); setStep(Step.Upload); }} className="!py-2 !px-4 !text-[10px] !rounded-xl uppercase tracking-widest">
+                   <RefreshCw className="w-3.5 h-3.5" /> Reset Studio
+                </GlassButton>
+              )}
+            </div>
           </header>
 
           <GlassCard className="min-h-[620px] flex flex-col backdrop-blur-[40px] bg-black/50 !border-white/5 relative">
@@ -603,13 +732,33 @@ Viral Titles: ${state.recap.titleOptions?.join(', ')}
                         controls
                       />
                     </div>
+                    
+                    {!hasSelectedKey && (
+                      <div className="mb-10 p-6 rounded-3xl bg-amber-500/5 border border-amber-500/10 text-left">
+                         <div className="flex items-center gap-3 mb-3">
+                            <Lock className="w-5 h-5 text-amber-400" />
+                            <h4 className="text-sm font-black uppercase tracking-widest text-amber-100">Paid Environment Access Required</h4>
+                         </div>
+                         <p className="text-white/40 text-xs leading-relaxed">
+                           To analyze high-fidelity video, you must configure a <strong>Paid API Key</strong> in the settings menu above. High-tier models are unavailable on standard free project keys.
+                         </p>
+                      </div>
+                    )}
+
                     <div className="flex flex-col sm:flex-row items-center gap-5">
                       <GlassButton variant="secondary" onClick={() => setState(prev => ({ ...prev, videoUrl: null }))} className="w-full sm:flex-1">
                         Replace File
                       </GlassButton>
-                      <GlassButton variant="primary" onClick={startAnalysisAndScript} className="w-full sm:flex-[2] py-5">
-                        Begin AI Analysis <Sparkles className="w-5 h-5" />
-                      </GlassButton>
+                      
+                      {hasSelectedKey ? (
+                        <GlassButton variant="primary" onClick={startAnalysisAndScript} className="w-full sm:flex-[2] py-5">
+                          Begin AI Analysis <Sparkles className="w-5 h-5" />
+                        </GlassButton>
+                      ) : (
+                        <GlassButton variant="warning" onClick={() => setShowSettings(true)} className="w-full sm:flex-[2] py-5">
+                          Configure Account First <Lock className="w-5 h-5" />
+                        </GlassButton>
+                      )}
                     </div>
                   </div>
                 )}
