@@ -94,6 +94,14 @@ export const VOICES: Voice[] = [
   }
 ];
 
+export const NARRATIVE_STYLES = [
+  { id: 'satire', label: 'Satire', description: 'သရော်စာဆန်ဆန်နဲ့ ရယ်စရာနှောပြီး ပြောပြမယ်' },
+  { id: 'witty', label: 'Witty', description: 'ပါးနပ်တဲ့ စကားလုံးတွေနဲ့ စိတ်ဝင်စားစရာ ရေးသားမယ်' },
+  { id: 'irony', label: 'Irony', description: 'လေ့လာတွေ့ရှိချက်တွေကို ပြောင်းပြန်လှန်ပြီး ခနဲ့တဲ့တဲ့ ပြောမယ်' },
+  { id: 'wholesome', label: 'Wholesome', description: 'နွေးထွေးပြီး စိတ်ချမ်းသာစရာကောင်းတဲ့ ပုံစံနဲ့ ပြောမယ်' },
+  { id: 'mystery', label: 'Mystery', description: 'လျှို့ဝှက်ဆန်းကြယ်ပြီး ရင်ခုန်စရာကောင်းအောင် တင်ဆက်မယ်' }
+];
+
 export const FORBIDDEN_WORDS = [
   "သည်", "၏", "၌", "မည်", "ကျနော်", "ဟု", "၎င်း", "၍",
   "တည်း", "ကဲ့သို့", "အနေဖြင့်", "ဖြစ်သည်", "ဖြစ်၏",

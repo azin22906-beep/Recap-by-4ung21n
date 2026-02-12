@@ -113,6 +113,41 @@ export async function analyzeVideo(videoBase64: string, mimeType: string, durati
   return JSON.parse(text);
 }
 
+export async function regenerateScriptWithStyle(originalScript: string, styleLabel: string, styleDescription: string): Promise<string> {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const model = "gemini-3-pro-preview";
+  
+  const prompt = `
+    Rewrite the following Burmese video recap script using a "${styleLabel}" narrative style.
+    
+    STYLE DESCRIPTION: ${styleDescription}
+    
+    STRICT RULES:
+    1. FACTUALITY: Do not change the events or facts. Only change the tone and narrative angle.
+    2. GRAMMAR RULES: Strictly follow all VIBE, FORMATTING, and FORBIDDEN WORDS rules from the system instruction.
+    3. FORMATTING: DO NOT USE COMMAS (၊) OR PERIODS (။). Use 2-4 spaces for pauses.
+    4. LENGTH: Keep the spoken duration roughly the same as the original.
+    5. NAMES: Keep all English names exactly as they are.
+    
+    ORIGINAL SCRIPT:
+    ${originalScript}
+    
+    Output ONLY the rewritten script as a single string.
+  `;
+
+  const response = await ai.models.generateContent({
+    model,
+    contents: [{ text: prompt }],
+    config: {
+      systemInstruction: SYSTEM_PROMPT,
+    }
+  });
+
+  const text = response.text;
+  if (!text) throw new Error("Failed to regenerate script");
+  return text;
+}
+
 export async function generateTTS(text: string, voiceEngine: string, styleInstructions: string, styleHint: string = ''): Promise<string> {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const model = "gemini-2.5-flash-preview-tts";
