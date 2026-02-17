@@ -1,6 +1,6 @@
 {
-  "name": "Burmese Video Recapper PRO",
-  "description": "Professional AI-driven movie recap generator with Burmese TTS and factual analysis. Optimized for Netlify deployment.",
+  "name": "Recap Pro V3.5",
+  "description": "Stable version with Master Prompt V5.6A\naudio အရှည်ထုတ်လို့ရပြီ\nupdated V3.5\nvideo အရှည်တွေအတွက် အသံရှည်တွေထုတ်ပေးနိင်တော့မယ်\nNarrative Style တွေထပ်ထည့်ထားတယ်",
   "requestFramePermissions": [
     "camera",
     "microphone"

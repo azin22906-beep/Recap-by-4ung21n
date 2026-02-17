@@ -57,4 +57,5 @@ export interface GenerationState {
   audioDuration: number;
   audioSettings: AudioSettings;
   movieTitle: string;
+  narrativePerspective: 'first_person' | 'third_person';
 }

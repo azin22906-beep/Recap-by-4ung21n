@@ -3,7 +3,7 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Step, GenerationState, VideoMetadata, RecapData, Voice } from './types';
 import { VOICES, NARRATIVE_STYLES } from './constants';
 import { analyzeVideo, generateTTS, wrapPcmInWav, regenerateScriptWithStyle } from './services/geminiService';
-import { Play, Upload, Mic, Sliders, CheckCircle, Video, FileText, Download, RotateCcw, Volume2, Eye, Info, Speaker, Pause, User, UserCheck, RefreshCw, AlertCircle, History, ArrowLeft, XCircle, ArrowRight, Sparkles, Ghost, Zap, Heart, Megaphone, BookOpen, Smile, Skull, ShieldAlert, Radio, Wand2, Type as TypeIcon, Flame, Waves, Wind, Key, ChevronRight, Music, Copy, Check, Settings2, VolumeX, Rewind, FastForward, Activity, Cpu, Scan, Globe, Layers, Clapperboard, Film, LayoutDashboard, Share2, ShieldCheck, Lock, ExternalLink, Settings, Maximize2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Play, Upload, Mic, Sliders, CheckCircle, Video, FileText, Download, RotateCcw, Volume2, Eye, Info, Speaker, Pause, User, UserCheck, RefreshCw, AlertCircle, History, ArrowLeft, XCircle, ArrowRight, Sparkles, Ghost, Zap, Heart, Megaphone, BookOpen, Smile, Skull, ShieldAlert, Radio, Wand2, Type as TypeIcon, Flame, Waves, Wind, Key, ChevronRight, Music, Copy, Check, Settings2, VolumeX, Rewind, FastForward, Activity, Cpu, Scan, Globe, Layers, Clapperboard, Film, LayoutDashboard, Share2, ShieldCheck, Lock, ExternalLink, Settings, Maximize2, ChevronDown, ChevronUp, PenTool, Link } from 'lucide-react';
 
 const STYLE_SUGGESTIONS = [
   {
@@ -180,10 +180,13 @@ const App: React.FC = () => {
   const [originalScript, setOriginalScript] = useState<string>('');
   const [lastSyncedScript, setLastSyncedScript] = useState<string>('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [isQuotaError, setIsQuotaError] = useState(false);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
-  const [showVideoControls, setShowVideoControls] = useState(false);
+  const [showVideoControls, setShowVideoControls] = useState(true);
   const [isAudioDrawerOpen, setIsAudioDrawerOpen] = useState(false);
+  const [uploadMode, setUploadMode] = useState<'video' | 'manual' | 'link'>('video');
+  const [manualScript, setManualScript] = useState<string>('');
+  const [linkUrl, setLinkUrl] = useState<string>('');
+  const [isFetchingLink, setIsFetchingLink] = useState(false);
   const controlsTimeoutRef = useRef<number | null>(null);
   
   const [state, setState] = useState<GenerationState>({
@@ -196,7 +199,8 @@ const App: React.FC = () => {
     audioUrl: null,
     audioDuration: 0,
     audioSettings: { narrationVolume: 1, originalVolume: 0 },
-    movieTitle: 'Untitled Movie'
+    movieTitle: 'Untitled Movie',
+    narrativePerspective: 'third_person'
   });
 
   const [loadingStep, setLoadingStep] = useState<number>(0);
@@ -209,7 +213,7 @@ const App: React.FC = () => {
   const previewAudioRef = useRef<HTMLAudioElement>(null);
   const finalAudioRef = useRef<HTMLAudioElement>(null);
 
-  const [videoSettings, setVideoSettings] = useState({
+  const [videoSettings] = useState({
     speed: 1,
     isMirrored: false,
     originalMuted: true
@@ -243,7 +247,88 @@ const App: React.FC = () => {
         movieTitle: cleanName || 'Untitled Movie'
       }));
       setErrorMessage(null);
-      setIsQuotaError(false);
+    }
+  };
+
+  const handleLinkFetch = async () => {
+    if (!linkUrl.trim()) return;
+    
+    setIsFetchingLink(true);
+    setErrorMessage(null);
+
+    let targetUrl = linkUrl.trim();
+    if (!/^https?:\/\//i.test(targetUrl)) {
+      targetUrl = 'https://' + targetUrl;
+    }
+
+    // Check for social media links specifically to provide better feedback
+    const isSocialMedia = /youtube\.com|youtu\.be|tiktok\.com|facebook\.com|instagram\.com|twitter\.com/i.test(targetUrl);
+
+    try {
+      if (isSocialMedia) {
+          // If it's a known social media link, we throw a specific error because direct fetch will fail CORS or return HTML
+          throw new Error("Social Media links (YouTube, TikTok, Facebook, etc.) cannot be processed directly due to platform security restrictions.\n\nPlease download the video first using a tool like 'ssyoutube' or 'snaptik', then upload the video file here.");
+      }
+
+      let response;
+      
+      // Attempt 1: Direct Fetch (for CORS-enabled servers)
+      try {
+         response = await fetch(targetUrl);
+         if (!response.ok) throw new Error("Direct fetch failed");
+      } catch (e) {
+         // Attempt 2: CORS Proxy (corsproxy.io)
+         try {
+            response = await fetch(`https://corsproxy.io/?${encodeURIComponent(targetUrl)}`);
+            if (!response.ok) throw new Error("Proxy 1 failed");
+         } catch (e2) {
+            // Attempt 3: AllOrigins Proxy (fallback)
+             response = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`);
+         }
+      }
+
+      if (!response || !response.ok) {
+          throw new Error(`Unable to access URL. (Status: ${response?.status || 'Network Error'})`);
+      }
+      
+      const contentType = response.headers.get("content-type");
+      if (contentType && (contentType.includes("text/html") || contentType.includes("application/json"))) {
+         throw new Error("The link returned a Webpage, not a Video file. Please provide a direct link to a video file (ending in .mp4, .mov, etc).");
+      }
+      
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      
+      // Extract filename hint from URL
+      let cleanName = "Linked Video";
+      try {
+        const urlObj = new URL(targetUrl);
+        const pathSegments = urlObj.pathname.split('/').filter(Boolean);
+        if (pathSegments.length > 0) {
+           cleanName = pathSegments[pathSegments.length - 1];
+        }
+      } catch (e) {}
+      cleanName = cleanName.replace(/[^a-zA-Z0-9\s]/g, " ");
+
+      setState(prev => ({ 
+        ...prev, 
+        videoBlob: blob, 
+        videoUrl: url,
+        metadata: null, 
+        recap: null,
+        audioUrl: null,
+        movieTitle: cleanName
+      }));
+      setLinkUrl('');
+      
+    } catch (error: any) {
+      console.error(error);
+      let msg = error.message || "Failed to load video.";
+      if (msg === "Failed to fetch") msg = "Network request failed. The URL might be blocked by CORS policy.";
+      
+      setErrorMessage(msg);
+    } finally {
+      setIsFetchingLink(false);
     }
   };
 
@@ -278,12 +363,49 @@ const App: React.FC = () => {
     }
   };
 
-  const handleInteraction = () => {
+  const handleInteraction = useCallback(() => {
     setShowVideoControls(true);
     if (controlsTimeoutRef.current) window.clearTimeout(controlsTimeoutRef.current);
-    controlsTimeoutRef.current = window.setTimeout(() => {
-      if (isVideoPlaying) setShowVideoControls(false);
-    }, 2500);
+    
+    // Auto-hide only if playing. If paused, controls stay visible.
+    if (isVideoPlaying) {
+      controlsTimeoutRef.current = window.setTimeout(() => {
+        setShowVideoControls(false);
+      }, 1000);
+    }
+  }, [isVideoPlaying]);
+
+  useEffect(() => {
+    // Sync the hide timer when play status changes
+    if (isVideoPlaying) {
+      handleInteraction();
+    } else {
+      setShowVideoControls(true);
+      if (controlsTimeoutRef.current) window.clearTimeout(controlsTimeoutRef.current);
+    }
+  }, [isVideoPlaying, handleInteraction]);
+
+  const handleManualProceed = () => {
+    if (!manualScript.trim()) {
+      setErrorMessage("Please enter a script first.");
+      return;
+    }
+    const manualRecap: RecapData = {
+      movieTitle: "Manual Production",
+      summary: "Manual narration script",
+      script: manualScript,
+      events: [],
+      characters: [],
+      genre: "Custom"
+    };
+    setState(prev => ({
+      ...prev,
+      recap: manualRecap,
+      movieTitle: "Manual Production",
+      metadata: { duration: 0, formattedDuration: "00:00" } as VideoMetadata
+    }));
+    setOriginalScript(manualScript);
+    setStep(Step.Adjustments);
   };
 
   const playVoicePreview = async (e: React.MouseEvent, voice: Voice) => {
@@ -328,7 +450,6 @@ const App: React.FC = () => {
     if (!state.recap?.script) return;
     setIsUpdatingAudio(true);
     setErrorMessage(null);
-    setIsQuotaError(false);
     try {
       const currentScript = state.recap.script;
       const selectedVoice = VOICES.find(v => v.id === state.selectedVoiceId)!;
@@ -350,7 +471,6 @@ const App: React.FC = () => {
     setLoadingStep(1);
     setProgress(0);
     setErrorMessage(null);
-    setIsQuotaError(false);
 
     const interval = setInterval(() => {
       setProgress(prev => {
@@ -379,7 +499,7 @@ const App: React.FC = () => {
 
       setLoadingStep(2); 
       
-      const { metadata, recap } = await analyzeVideo(base64, state.videoBlob.type, state.metadata.duration);
+      const { metadata, recap } = await analyzeVideo(base64, state.videoBlob.type, state.metadata.duration, state.narrativePerspective);
       
       clearInterval(interval);
       setProgress(100);
@@ -541,7 +661,7 @@ Viral Titles: ${state.recap.titleOptions?.join(', ')}
               </div>
               <div className="flex-1">
                 <h4 className="font-bold text-red-100 text-sm">Error</h4>
-                <p className="text-red-200/70 text-xs mt-0.5">{errorMessage}</p>
+                <p className="text-red-200/70 text-xs mt-0.5 whitespace-pre-line">{errorMessage}</p>
               </div>
               <button onClick={() => setErrorMessage(null)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
                 <XCircle className="w-4 h-4 text-white/50" />
@@ -566,7 +686,7 @@ Viral Titles: ${state.recap.titleOptions?.join(', ')}
             
             <div className="flex items-center gap-3 relative">
               {step !== Step.Upload && (
-                <GlassButton variant="secondary" onClick={() => { setState(prev => ({...prev, videoUrl: null})); setStep(Step.Upload); }} className="!py-1.5 md:!py-2 !px-3 md:!px-4 !text-[10px] !rounded-xl uppercase tracking-widest">
+                <GlassButton variant="secondary" onClick={() => { setState(prev => ({...prev, videoUrl: null, videoBlob: null, recap: null, audioUrl: null})); setStep(Step.Upload); setManualScript(''); setLinkUrl(''); }} className="!py-1.5 md:!py-2 !px-3 md:!px-4 !text-[10px] !rounded-xl uppercase tracking-widest">
                    <RefreshCw className="w-3 md:w-3.5 h-3 md:h-3.5" /> Reset Studio
                 </GlassButton>
               )}
@@ -595,46 +715,147 @@ Viral Titles: ${state.recap.titleOptions?.join(', ')}
             )}
             
             {step === Step.Upload && (
-              <div className="flex-1 flex flex-col items-center justify-center p-4 md:p-20 text-center animate-in fade-in zoom-in-95 duration-500">
-                {!state.videoUrl ? (
-                  <div className="w-full max-w-xl">
-                    <label className="group cursor-pointer block relative">
-                      <div className="absolute inset-0 bg-blue-500/10 blur-[80px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-                      <div className="relative border-2 border-dashed border-white/10 group-hover:border-blue-500/40 group-hover:bg-blue-500/[0.02] rounded-[32px] md:rounded-[48px] p-10 md:p-20 transition-all duration-500 flex flex-col items-center justify-center">
-                        <div className="w-16 h-16 md:w-24 md:h-24 bg-white/5 rounded-[24px] md:rounded-[32px] flex items-center justify-center mb-6 md:mb-8 group-hover:scale-110 transition-transform duration-500 border border-white/5 shadow-2xl relative">
-                          <Upload className="w-8 h-8 md:w-10 md:h-10 text-blue-400" />
-                          <div className="absolute -top-1 -right-1 w-3 md:w-4 h-3 md:h-4 bg-blue-500 rounded-full animate-ping opacity-20"></div>
+              <div className="flex-1 flex flex-col items-center justify-center p-4 md:p-12 text-center animate-in fade-in zoom-in-95 duration-500">
+                <div className="w-full max-w-4xl flex flex-col gap-8">
+                  {/* Mode Toggle */}
+                  <div className="flex bg-white/5 p-1.5 rounded-2xl border border-white/10 backdrop-blur-md self-center flex-wrap justify-center gap-1">
+                    <button 
+                      onClick={() => setUploadMode('video')} 
+                      className={`px-4 md:px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all duration-400 flex items-center gap-2 ${uploadMode === 'video' ? 'bg-blue-600 text-white shadow-xl' : 'text-white/50 hover:text-white'}`}
+                    >
+                      <Video className="w-4 h-4" /> Video Upload
+                    </button>
+                    <button 
+                      onClick={() => setUploadMode('link')} 
+                      className={`px-4 md:px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all duration-400 flex items-center gap-2 ${uploadMode === 'link' ? 'bg-blue-600 text-white shadow-xl' : 'text-white/50 hover:text-white'}`}
+                    >
+                      <Link className="w-4 h-4" /> Social / Link
+                    </button>
+                    <button 
+                      onClick={() => setUploadMode('manual')} 
+                      className={`px-4 md:px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all duration-400 flex items-center gap-2 ${uploadMode === 'manual' ? 'bg-blue-600 text-white shadow-xl' : 'text-white/50 hover:text-white'}`}
+                    >
+                      <PenTool className="w-4 h-4" /> Manual Script
+                    </button>
+                  </div>
+
+                  {uploadMode === 'video' ? (
+                    !state.videoUrl ? (
+                      <label className="group cursor-pointer block relative">
+                        <div className="absolute inset-0 bg-blue-500/10 blur-[80px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+                        <div className="relative border-2 border-dashed border-white/10 group-hover:border-blue-500/40 group-hover:bg-blue-500/[0.02] rounded-[32px] md:rounded-[48px] p-12 md:p-24 transition-all duration-500 flex flex-col items-center justify-center">
+                          <div className="w-16 h-16 md:w-24 md:h-24 bg-white/5 rounded-[24px] md:rounded-[32px] flex items-center justify-center mb-6 md:mb-8 group-hover:scale-110 transition-transform duration-500 border border-white/5 shadow-2xl relative">
+                            <Upload className="w-8 h-8 md:w-10 md:h-10 text-blue-400" />
+                            <div className="absolute -top-1 -right-1 w-3 md:w-4 h-3 md:h-4 bg-blue-500 rounded-full animate-ping opacity-20"></div>
+                          </div>
+                          <h3 className="text-2xl md:text-3xl font-extrabold mb-3 md:mb-4 tracking-tight">Drop your Video</h3>
+                          <p className="text-white/40 mb-8 md:mb-10 max-w-xs mx-auto text-sm md:text-base font-medium leading-relaxed">Let AI watch and recap your movie clips in natural Burmese.</p>
+                          <span className="px-6 md:px-8 py-3 md:py-4 bg-white text-black font-bold rounded-2xl text-xs md:text-sm hover:scale-105 transition-all shadow-xl">Select Video File</span>
                         </div>
-                        <h3 className="text-2xl md:text-3xl font-extrabold mb-3 md:mb-4 tracking-tight">Drop your Video</h3>
-                        <p className="text-white/40 mb-8 md:mb-10 max-w-xs mx-auto text-sm md:text-base font-medium leading-relaxed">Let AI watch and recap your movie clips in natural Burmese.</p>
-                        <span className="px-6 md:px-8 py-3 md:py-4 bg-white text-black font-bold rounded-2xl text-xs md:text-sm hover:scale-105 transition-all shadow-xl">Select from Computer</span>
+                        <input type="file" accept="video/*" className="hidden" onChange={handleVideoUpload} />
+                      </label>
+                    ) : (
+                      <div className="animate-in fade-in slide-in-from-bottom-8 duration-500 max-w-2xl mx-auto">
+                        <div className="relative rounded-[24px] md:rounded-[36px] overflow-hidden border border-white/10 shadow-2xl bg-black aspect-video mb-8 group">
+                          <video 
+                            ref={videoRef} 
+                            src={state.videoUrl} 
+                            className="w-full h-full object-contain"
+                            onLoadedMetadata={calculateDuration}
+                            controls
+                          />
+                        </div>
+                        
+                        {/* Narrative Perspective Selector */}
+                        <div className="bg-black/30 p-2 rounded-2xl border border-white/5 mb-6 flex items-center justify-between gap-2 max-w-md mx-auto">
+                          <button 
+                             onClick={() => setState(prev => ({ ...prev, narrativePerspective: 'third_person' }))}
+                             className={`flex-1 py-3 px-4 rounded-xl text-xs font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${state.narrativePerspective === 'third_person' ? 'bg-blue-600 text-white shadow-lg' : 'text-white/40 hover:text-white hover:bg-white/5'}`}
+                          >
+                             <User className="w-4 h-4" /> Third Person
+                          </button>
+                          <button 
+                             onClick={() => setState(prev => ({ ...prev, narrativePerspective: 'first_person' }))}
+                             className={`flex-1 py-3 px-4 rounded-xl text-xs font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${state.narrativePerspective === 'first_person' ? 'bg-purple-600 text-white shadow-lg' : 'text-white/40 hover:text-white hover:bg-white/5'}`}
+                          >
+                             <UserCheck className="w-4 h-4" /> First Person
+                          </button>
+                        </div>
+
+                        <div className="flex flex-col sm:flex-row items-center gap-4">
+                          <GlassButton variant="secondary" onClick={() => setState(prev => ({ ...prev, videoUrl: null, videoBlob: null }))} className="w-full sm:flex-1">
+                            Replace File
+                          </GlassButton>
+                          <GlassButton variant="primary" onClick={startAnalysisAndScript} className="w-full sm:flex-[2] py-4">
+                            Begin AI Analysis <Sparkles className="w-5 h-5" />
+                          </GlassButton>
+                        </div>
                       </div>
-                      <input type="file" accept="video/*" className="hidden" onChange={handleVideoUpload} />
-                    </label>
-                  </div>
-                ) : (
-                  <div className="w-full max-w-2xl animate-in fade-in slide-in-from-bottom-8 duration-500">
-                    <div className="relative rounded-[24px] md:rounded-[36px] overflow-hidden border border-white/10 shadow-2xl bg-black aspect-video mb-8 md:mb-10 group">
-                      <video 
-                        ref={videoRef} 
-                        src={state.videoUrl} 
-                        className="w-full h-full object-contain"
-                        onLoadedMetadata={calculateDuration}
-                        controls
-                      />
+                    )
+                  ) : uploadMode === 'link' ? (
+                     <div className="animate-in fade-in slide-in-from-bottom-8 duration-500 w-full flex flex-col items-center">
+                        <div className="bg-black/20 rounded-[32px] p-8 md:p-12 border border-white/5 flex flex-col shadow-inner w-full max-w-2xl relative overflow-hidden">
+                           <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 blur-[60px] rounded-full pointer-events-none"></div>
+                           
+                           <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center mb-6 self-center border border-white/5 shadow-lg">
+                              <Link className="w-8 h-8 text-blue-400" />
+                           </div>
+                           
+                           <h3 className="text-xl md:text-2xl font-bold mb-2">Fetch from URL</h3>
+                           <p className="text-white/40 text-xs md:text-sm mb-8 leading-relaxed max-w-md self-center">
+                             Paste a direct link to a video file. <br/>
+                             <span className="text-white/20 italic mt-2 block text-[10px]">(Note: YouTube, TikTok, Facebook links are protected by CORS and may not work without a direct download link or proxy.)</span>
+                           </p>
+
+                           <div className="relative w-full">
+                              <input
+                                type="text"
+                                className="w-full bg-black/40 border border-white/10 rounded-xl px-5 py-4 text-white focus:outline-none focus:border-blue-500/50 transition-colors pr-12 text-sm md:text-base font-medium"
+                                placeholder="https://example.com/video.mp4"
+                                value={linkUrl}
+                                onChange={(e) => setLinkUrl(e.target.value)}
+                              />
+                              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                 {isFetchingLink ? <RefreshCw className="w-5 h-5 text-blue-500 animate-spin" /> : <Link className="w-5 h-5 text-white/20" />}
+                              </div>
+                           </div>
+                           
+                           <div className="mt-8 flex justify-center">
+                              <GlassButton 
+                                variant="primary" 
+                                onClick={handleLinkFetch} 
+                                className="w-full py-4 shadow-xl"
+                                disabled={!linkUrl.trim() || isFetchingLink}
+                              >
+                                {isFetchingLink ? "Fetching Video..." : "Load Video"} <ArrowRight className="w-5 h-5" />
+                              </GlassButton>
+                           </div>
+                        </div>
+                     </div>
+                  ) : (
+                    <div className="animate-in fade-in slide-in-from-bottom-8 duration-500 w-full">
+                      <div className="bg-black/20 rounded-[32px] p-6 md:p-10 border border-white/5 flex flex-col shadow-inner">
+                        <label className="text-xs font-bold text-white/30 uppercase tracking-[0.2em] mb-5 block text-left">Production Script (Burmese)</label>
+                        <textarea
+                          className="w-full min-h-[300px] bg-transparent text-xl text-white/90 placeholder-white/10 resize-none focus:outline-none leading-relaxed font-medium myanmar-text"
+                          placeholder="Paste or type your script here in conversational Burmese..."
+                          value={manualScript}
+                          onChange={(e) => setManualScript(e.target.value)}
+                        />
+                      </div>
+                      <div className="mt-8 flex justify-center">
+                        <GlassButton 
+                          variant="primary" 
+                          onClick={handleManualProceed} 
+                          className="w-full max-w-lg py-5 shadow-2xl shadow-blue-900/40"
+                          disabled={!manualScript.trim()}
+                        >
+                          Proceed to Studio <ArrowRight className="w-5 h-5" />
+                        </GlassButton>
+                      </div>
                     </div>
-                    
-                    <div className="flex flex-col sm:flex-row items-center gap-4 md:gap-5">
-                      <GlassButton variant="secondary" onClick={() => setState(prev => ({ ...prev, videoUrl: null }))} className="w-full sm:flex-1">
-                        Replace File
-                      </GlassButton>
-                      
-                      <GlassButton variant="primary" onClick={startAnalysisAndScript} className="w-full sm:flex-[2] py-4 md:py-5">
-                        Begin AI Analysis <Sparkles className="w-5 h-5" />
-                      </GlassButton>
-                    </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             )}
 
@@ -669,7 +890,7 @@ Viral Titles: ${state.recap.titleOptions?.join(', ')}
                            <span className="typing-effect">
                              {progress < 25 ? "Ingesting raw pixels and extracting key metadata..." :
                               progress < 50 ? "Deconstructing scene boundaries and character arcs..." :
-                              progress < 75 ? "Synthesizing conversational Burmese narrative..." :
+                              progress < 75 ? `Synthesizing ${state.narrativePerspective === 'first_person' ? 'First Person' : 'Third Person'} Burmese narrative...` :
                               "Perfecting pauses and natural Burmese rhythm..."}
                            </span>
                            <span className="inline-block w-2 md:w-3 h-4 md:h-6 bg-blue-500 ml-1 md:ml-2 align-middle animate-pulse"></span>
@@ -830,7 +1051,7 @@ Viral Titles: ${state.recap.titleOptions?.join(', ')}
                 {/* Header Overlay */}
                 <div className="flex items-center justify-between p-4 md:p-6 bg-gradient-to-b from-black/80 to-transparent absolute top-0 left-0 right-0 z-20 pointer-events-none">
                   <div className="flex items-center gap-3 md:gap-4 pointer-events-auto">
-                    <button onClick={() => { setState(prev => ({...prev, videoUrl: null, recap: null})); setStep(Step.Upload); }} className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all border border-white/10 backdrop-blur-md">
+                    <button onClick={() => { setState(prev => ({...prev, videoUrl: null, videoBlob: null, recap: null, audioUrl: null})); setStep(Step.Upload); }} className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all border border-white/10 backdrop-blur-md">
                       <ArrowLeft className="w-5 md:w-6 h-5 md:h-6 text-white/70" />
                     </button>
                     <div>
@@ -852,24 +1073,33 @@ Viral Titles: ${state.recap.titleOptions?.join(', ')}
                 <div 
                   className="relative flex-none h-[45vh] md:h-[55vh] w-full bg-black group overflow-hidden"
                   onMouseMove={handleInteraction}
-                  onMouseEnter={() => setShowVideoControls(true)}
+                  onMouseEnter={handleInteraction}
                   onMouseLeave={() => isVideoPlaying && setShowVideoControls(false)}
                   onTouchStart={handleInteraction}
                 >
-                  <video 
-                     ref={videoRef} 
-                     src={state.videoUrl!} 
-                     onTimeUpdate={syncPlayers} 
-                     onClick={togglePlayback}
-                     onPlay={() => { setIsVideoPlaying(true); handleInteraction(); }}
-                     onPause={() => { setIsVideoPlaying(false); setShowVideoControls(true); }}
-                     className={`w-full h-full object-contain transition-transform duration-500 ${videoSettings.isMirrored ? '-scale-x-100' : 'scale-x-100'}`} 
-                  />
+                  {state.videoUrl ? (
+                    <video 
+                       ref={videoRef} 
+                       src={state.videoUrl!} 
+                       onTimeUpdate={syncPlayers} 
+                       onClick={togglePlayback}
+                       onPlay={() => { setIsVideoPlaying(true); }}
+                       onPause={() => { setIsVideoPlaying(false); }}
+                       className={`w-full h-full object-contain transition-transform duration-500 ${videoSettings.isMirrored ? '-scale-x-100' : 'scale-x-100'}`} 
+                    />
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-900/50">
+                       <div className="w-24 h-24 rounded-full bg-blue-500/10 flex items-center justify-center border border-blue-500/20 mb-4">
+                          <Mic className="w-10 h-10 text-blue-400" />
+                       </div>
+                       <p className="text-white/40 font-mono text-xs uppercase tracking-widest">Manual Script Mode</p>
+                    </div>
+                  )}
                   <audio ref={audioRef} src={state.audioUrl || ''} />
 
                   {/* Video Controls Overlay */}
-                  <div className={`absolute inset-0 z-10 flex flex-col justify-center items-center bg-black/40 backdrop-blur-[2px] transition-opacity duration-500 ${showVideoControls ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-                    <div className="flex items-center gap-8 md:gap-12">
+                  <div className={`absolute inset-0 z-10 flex flex-col justify-center items-center bg-black/30 backdrop-blur-[1px] transition-all duration-300 ${showVideoControls ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+                    <div className="flex items-center gap-8 md:gap-12 scale-90 md:scale-100">
                       <button onClick={(e) => { e.stopPropagation(); skipVideo(-5); }} className="p-3 md:p-4 hover:bg-white/10 rounded-full text-white/60 hover:text-white transition-all transform active:scale-90">
                          <Rewind className="w-8 md:w-10 h-8 md:h-10" />
                       </button>
@@ -885,7 +1115,7 @@ Viral Titles: ${state.recap.titleOptions?.join(', ')}
                   </div>
 
                   {/* Bottom Player Overlay Bar */}
-                  <div className={`absolute bottom-0 left-0 right-0 z-20 p-4 md:p-6 bg-gradient-to-t from-black/80 to-transparent flex items-center justify-between transition-opacity duration-500 ${showVideoControls ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+                  <div className={`absolute bottom-0 left-0 right-0 z-20 p-4 md:p-6 bg-gradient-to-t from-black/80 to-transparent flex items-center justify-between transition-all duration-300 ${showVideoControls ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
                     <div className="flex items-center gap-4">
                       <div className="bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10 flex items-center gap-3">
                         <span className="text-[10px] md:text-xs font-mono font-bold text-white/90 tabular-nums">
@@ -955,9 +1185,11 @@ Viral Titles: ${state.recap.titleOptions?.join(', ')}
                         )}
                       </div>
                       
-                      <button onClick={(e) => { e.stopPropagation(); videoRef.current?.requestFullscreen(); }} className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-black/40 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/60 hover:bg-black/60 transition-all">
-                        <Maximize2 className="w-5 md:w-6 h-5 md:h-6" />
-                      </button>
+                      {state.videoUrl && (
+                        <button onClick={(e) => { e.stopPropagation(); videoRef.current?.requestFullscreen(); }} className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-black/40 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/60 hover:bg-black/60 transition-all">
+                          <Maximize2 className="w-5 md:w-6 h-5 md:h-6" />
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1149,7 +1381,7 @@ Viral Titles: ${state.recap.titleOptions?.join(', ')}
 
                         <div className="flex gap-4">
                            <GlassButton 
-                             onClick={() => { setState(prev => ({...prev, videoUrl: null, videoBlob: null, recap: null, audioUrl: null, metadata: null})); setStep(Step.Upload); }} 
+                             onClick={() => { setState(prev => ({...prev, videoUrl: null, videoBlob: null, recap: null, audioUrl: null, metadata: null})); setStep(Step.Upload); setManualScript(''); setLinkUrl(''); }} 
                              className="w-full bg-white/5 border-white/10 hover:bg-white/10 !text-white/40 hover:!text-white !text-[10px] font-black uppercase tracking-widest py-4 md:py-5"
                            >
                               New Project Session
