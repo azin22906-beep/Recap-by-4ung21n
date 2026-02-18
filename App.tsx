@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Step, GenerationState, VideoMetadata, RecapData, Voice } from './types';
 import { VOICES, NARRATIVE_STYLES } from './constants';
@@ -78,7 +77,7 @@ const NeuCard: React.FC<NeuCardProps> = ({ children, className = "", onClick, in
 
 interface NeuButtonProps {
   children?: React.ReactNode;
-  onClick?: () => void;
+  onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void;
   variant?: 'primary' | 'secondary' | 'icon' | 'danger';
   className?: string;
   disabled?: boolean;
@@ -383,7 +382,7 @@ const App: React.FC = () => {
         videoBlob: blob, 
         videoUrl: url,
         metadata: null, 
-        recap: null,
+        recap: null, 
         audioUrl: null,
         movieTitle: cleanName
       }));
@@ -743,7 +742,7 @@ Hashtags: ${state.recap.hashtags?.join(' ') || ''}
         onPlay={() => setIsFinalAudioPlaying(true)} 
         onPause={() => setIsFinalAudioPlaying(false)} 
         onEnded={() => setIsFinalAudioPlaying(false)} 
-        onLoadedMetadata={(e) => {
+        onLoadedMetadata={(e: React.SyntheticEvent<HTMLAudioElement>) => {
            const dur = e.currentTarget.duration;
            if (!isNaN(dur)) {
               setState(prev => ({ ...prev, audioDuration: dur }));

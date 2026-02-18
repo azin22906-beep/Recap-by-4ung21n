@@ -244,7 +244,8 @@ export async function generateTTS(text: string, voiceEngine: string, styleInstru
   }
 
   let base64Audio = '';
-  for (const part of candidate.content.parts) {
+  const parts = candidate.content?.parts || [];
+  for (const part of parts) {
     if (part.inlineData?.data) {
       base64Audio = part.inlineData.data;
       break;
@@ -253,8 +254,9 @@ export async function generateTTS(text: string, voiceEngine: string, styleInstru
 
   if (!base64Audio) {
     // If no audio part but there is text, it might be an error message from the model
-    if (candidate.content.parts[0]?.text) {
-      throw new Error(`TTS generation failed: ${candidate.content.parts[0].text}`);
+    const firstPartText = candidate.content?.parts?.[0]?.text;
+    if (firstPartText) {
+      throw new Error(`TTS generation failed: ${firstPartText}`);
     }
     throw new Error("Failed to generate audio: No audio data found in response");
   }
