@@ -536,7 +536,7 @@ const App: React.FC = () => {
   const parseErrorMessage = (error: any) => {
     const msg = error?.message || String(error);
     if (msg.includes("429") || msg.includes("quota") || msg.includes("RESOURCE_EXHAUSTED")) {
-      return "API Quota Exceeded. Please try again later.";
+      return "API Quota Exceeded. Please try again later or check your billing in Google AI Studio.";
     }
     return msg;
   };

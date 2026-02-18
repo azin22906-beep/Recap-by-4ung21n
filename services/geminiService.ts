@@ -5,7 +5,9 @@ import { VideoMetadata, RecapData } from "../types";
 
 export async function analyzeVideo(apiKey: string, videoBase64: string, mimeType: string, duration: number, perspective: 'first_person' | 'third_person' = 'third_person'): Promise<{ metadata: VideoMetadata, recap: RecapData }> {
   const ai = new GoogleGenAI({ apiKey });
-  const model = "gemini-3-pro-preview";
+  // Switched to gemini-2.5-flash for better quota limits and speed on free accounts
+  // gemini-3-pro-preview often triggers 429 Resource Exhausted on video inputs
+  const model = "gemini-2.5-flash";
   
   const perspectiveInstruction = perspective === 'first_person' 
     ? 'NARRATIVE PERSPECTIVE: FIRST PERSON ("ကျွန်တော်/ကျွန်မ" - I). Narrate the story as if YOU are the main character involved in the events. Use first-person pronouns where appropriate and express internal thoughts directly.' 
@@ -130,7 +132,8 @@ export async function analyzeVideo(apiKey: string, videoBase64: string, mimeType
 
 export async function regenerateScriptWithStyle(apiKey: string, originalScript: string, styleLabel: string, styleDescription: string): Promise<string> {
   const ai = new GoogleGenAI({ apiKey });
-  const model = "gemini-3-pro-preview";
+  // Switched to gemini-2.5-flash for better quota stability
+  const model = "gemini-2.5-flash";
   
   const prompt = `
     Rewrite the following Burmese video recap script using a "${styleLabel}" narrative style.
@@ -219,6 +222,7 @@ export async function regenerateScriptWithStyle(apiKey: string, originalScript: 
 
 export async function generateTTS(apiKey: string, text: string, voiceEngine: string, styleInstructions: string, styleHint: string = ''): Promise<string> {
   const ai = new GoogleGenAI({ apiKey });
+  // TTS model remains the same as it's specialized
   const model = "gemini-2.5-flash-preview-tts";
   
   // Keep the prompt clear and focused on text-to-speech
