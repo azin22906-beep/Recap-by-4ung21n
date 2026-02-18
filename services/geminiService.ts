@@ -35,10 +35,12 @@ export async function analyzeVideo(videoBase64: string, mimeType: string, durati
     - Identify or suggest a concise and accurate title for this movie/video clip in the "movieTitle" field.
     - STRICTLY ADHERE to the Forbidden Words list and replacements in the System Prompt.
     - METADATA: endingStyle must be "Finished", "Abruptly cut", or "Uncertain".
+    - CTA: Provide a short, engaging Call-to-Action question or statement in Burmese suitable for a video outro.
+    - HASHTAGS: Provide 5 relevant, high-traffic hashtags (mix of Burmese and English) suitable for TikTok/YouTube Shorts.
     
     Return the response as JSON with these fields:
     - metadata: { detectedLanguage, languageEvidence, audioType, category, categoryConfidence, endingStyle }
-    - recap: { movieTitle, titleOptions, genre, logline, summary, events: [{time, description}], characters: [{name, description}], script, unclearPoints: [] }
+    - recap: { movieTitle, titleOptions, genre, logline, summary, events: [{time, description}], characters: [{name, description}], script, unclearPoints: [], cta, hashtags: [] }
   `;
 
   const response = await ai.models.generateContent({
@@ -103,6 +105,12 @@ export async function analyzeVideo(videoBase64: string, mimeType: string, durati
                 type: Type.ARRAY,
                 items: { type: Type.STRING },
                 description: "List of ambiguous elements or unclear points found in the video"
+              },
+              cta: { type: Type.STRING, description: "A short engaging call-to-action in Burmese" },
+              hashtags: {
+                type: Type.ARRAY,
+                items: { type: Type.STRING },
+                description: "5 viral hashtags mixed Burmese/English"
               }
             }
           }

@@ -1,13 +1,14 @@
+
 <!DOCTYPE html>
 <html lang="my">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Burmese Video Recapper | AI Movie Narration</title>
+    <title>4ung21n | AI Movie Narration</title>
     <meta name="description" content="AI-powered video analysis and movie recap generator in Burmese with natural text-to-speech.">
     
     <!-- OpenGraph -->
-    <meta property="og:title" content="Burmese Video Recapper">
+    <meta property="og:title" content="4ung21n">
     <meta property="og:description" content="Transform video clips into professional Burmese movie recaps with AI narration.">
     <meta property="og:type" content="website">
     
@@ -18,14 +19,18 @@
     <link href="https://fonts.googleapis.com/css2?family=Padauk:wght@400;700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --glass-bg: rgba(255, 255, 255, 0.03);
-            --glass-border: rgba(255, 255, 255, 0.1);
+            --bg-charcoal: #233d4d;
+            --accent-pumpkin: #fe7f2d;
+            --shadow-light: #2b4b5f;
+            --shadow-dark: #1b2f3b;
+            --text-main: #e0e6ed;
+            --text-muted: #94a3b8;
         }
         
         body {
             font-family: 'Inter', 'Padauk', sans-serif;
-            background-color: #000000;
-            color: #ffffff;
+            background-color: var(--bg-charcoal);
+            color: var(--text-main);
             margin: 0;
             padding: 0;
             overflow-x: hidden;
@@ -36,20 +41,73 @@
             line-height: 2;
         }
 
+        /* Neumorphism Utilities */
+        .neu-flat {
+            background: var(--bg-charcoal);
+            box-shadow: 8px 8px 16px var(--shadow-dark), 
+                       -8px -8px 16px var(--shadow-light);
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.02);
+        }
+
+        .neu-pressed {
+            background: var(--bg-charcoal);
+            box-shadow: inset 6px 6px 12px var(--shadow-dark), 
+                       inset -6px -6px 12px var(--shadow-light);
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.02);
+        }
+
+        .neu-btn {
+            background: var(--bg-charcoal);
+            box-shadow: 6px 6px 12px var(--shadow-dark), 
+                       -6px -6px 12px var(--shadow-light);
+            border-radius: 50px;
+            color: var(--accent-pumpkin);
+            transition: all 0.2s ease;
+            border: 1px solid rgba(255,255,255,0.02);
+        }
+
+        .neu-btn:active {
+            box-shadow: inset 4px 4px 8px var(--shadow-dark), 
+                       inset -4px -4px 8px var(--shadow-light);
+            transform: translateY(1px);
+        }
+
+        .neu-btn-primary {
+            background: var(--accent-pumpkin);
+            color: #ffffff;
+            box-shadow: 6px 6px 12px var(--shadow-dark), 
+                       -6px -6px 12px var(--shadow-light);
+        }
+        
+        .neu-btn-primary:hover {
+            filter: brightness(1.1);
+        }
+
+        .neu-btn-primary:active {
+            background: #e66e20;
+            box-shadow: inset 4px 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .text-pumpkin {
+            color: var(--accent-pumpkin);
+        }
+
         /* Custom Scrollbar */
         ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
+            width: 8px;
+            height: 8px;
         }
         ::-webkit-scrollbar-track {
-            background: rgba(0, 0, 0, 0.2);
+            background: var(--bg-charcoal);
         }
         ::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.1);
+            background: var(--shadow-light);
             border-radius: 10px;
         }
         ::-webkit-scrollbar-thumb:hover {
-            background: rgba(255, 255, 255, 0.2);
+            background: var(--accent-pumpkin);
         }
 
         /* Utilities */
@@ -59,12 +117,6 @@
         .no-scrollbar {
             -ms-overflow-style: none;
             scrollbar-width: none;
-        }
-        
-        .glass-effect {
-            background: var(--glass-bg);
-            backdrop-filter: blur(12px);
-            border: 1px solid var(--glass-border);
         }
 
         @keyframes float {

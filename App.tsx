@@ -3,7 +3,7 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Step, GenerationState, VideoMetadata, RecapData, Voice } from './types';
 import { VOICES, NARRATIVE_STYLES } from './constants';
 import { analyzeVideo, generateTTS, wrapPcmInWav, regenerateScriptWithStyle } from './services/geminiService';
-import { Play, Upload, Mic, Sliders, CheckCircle, Video, FileText, Download, RotateCcw, Volume2, Eye, Info, Speaker, Pause, User, UserCheck, RefreshCw, AlertCircle, History, ArrowLeft, XCircle, ArrowRight, Sparkles, Ghost, Zap, Heart, Megaphone, BookOpen, Smile, Skull, ShieldAlert, Radio, Wand2, Type as TypeIcon, Flame, Waves, Wind, Key, ChevronRight, Music, Copy, Check, Settings2, VolumeX, Rewind, FastForward, Activity, Cpu, Scan, Globe, Layers, Clapperboard, Film, LayoutDashboard, Share2, ShieldCheck, Lock, ExternalLink, Settings, Maximize2, ChevronDown, ChevronUp, PenTool, Link } from 'lucide-react';
+import { Play, Upload, Mic, Sliders, CheckCircle, Video, FileText, Download, RotateCcw, Volume2, Eye, Info, Speaker, Pause, User, UserCheck, RefreshCw, AlertCircle, History, ArrowLeft, XCircle, ArrowRight, Sparkles, Ghost, Zap, Heart, Megaphone, BookOpen, Smile, Skull, ShieldAlert, Radio, Wand2, Type as TypeIcon, Flame, Waves, Wind, Key, ChevronRight, Music, Copy, Check, Settings2, VolumeX, Rewind, FastForward, Activity, Cpu, Scan, Globe, Layers, Clapperboard, Film, LayoutDashboard, Share2, ShieldCheck, Lock, ExternalLink, Settings, Maximize2, ChevronDown, ChevronUp, PenTool, Link, Save, Trash2 } from 'lucide-react';
 
 const STYLE_SUGGESTIONS = [
   {
@@ -58,51 +58,54 @@ const STYLE_SUGGESTIONS = [
   }
 ];
 
-// --- Components for Glass UI ---
+// --- Components for Neumorphic UI ---
 
-interface GlassCardProps {
+interface NeuCardProps {
   children?: React.ReactNode;
   className?: string;
   onClick?: () => void;
+  inset?: boolean;
 }
 
-const GlassCard: React.FC<GlassCardProps> = ({ children, className = "", onClick }) => (
+const NeuCard: React.FC<NeuCardProps> = ({ children, className = "", onClick, inset = false }) => (
   <div 
     onClick={onClick}
-    className={`relative bg-white/5 backdrop-blur-md border border-white/10 shadow-xl rounded-[24px] overflow-hidden transition-all duration-300 ${onClick ? 'cursor-pointer hover:bg-white/10 hover:scale-[1.01] active:scale-[0.99]' : ''} ${className}`}
+    className={`${inset ? 'neu-pressed' : 'neu-flat'} transition-all duration-300 ${onClick ? 'cursor-pointer active:scale-[0.99]' : ''} ${className}`}
   >
     {children}
   </div>
 );
 
-interface GlassButtonProps {
+interface NeuButtonProps {
   children?: React.ReactNode;
   onClick?: () => void;
-  variant?: 'primary' | 'secondary' | 'danger' | 'ghost' | 'glass' | 'success' | 'warning';
+  variant?: 'primary' | 'secondary' | 'icon' | 'danger';
   className?: string;
   disabled?: boolean;
+  title?: string;
 }
 
-const GlassButton: React.FC<GlassButtonProps> = ({ 
+const NeuButton: React.FC<NeuButtonProps> = ({ 
   children, 
   onClick, 
-  variant = 'primary', 
+  variant = 'secondary', 
   className = "", 
-  disabled = false 
+  disabled = false,
+  title
 }) => {
-  const baseStyle = "px-6 py-4 rounded-full font-bold transition-all duration-300 flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 disabled:pointer-events-none";
-  const variants = {
-    primary: "bg-blue-600 hover:bg-blue-500 text-white shadow-[0_0_20px_rgba(37,99,235,0.4)] hover:shadow-[0_0_30px_rgba(37,99,235,0.6)] border border-blue-400/20",
-    secondary: "bg-white/10 hover:bg-white/20 text-white backdrop-blur-md border border-white/10",
-    danger: "bg-red-500/20 hover:bg-red-500/30 text-red-200 border border-red-500/30",
-    ghost: "bg-transparent hover:bg-white/5 text-white/70 hover:text-white",
-    glass: "bg-black/20 hover:bg-black/30 text-white border border-white/10 backdrop-blur-lg",
-    success: "bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_0_20px_rgba(16,185,129,0.4)] border border-emerald-400/20",
-    warning: "bg-amber-600 hover:bg-amber-500 text-white shadow-[0_0_20px_rgba(245,158,11,0.4)] border border-amber-400/20"
-  };
+  const baseStyle = "flex items-center justify-center font-bold transition-all duration-200 disabled:opacity-50 disabled:pointer-events-none";
+  
+  let variantStyle = "neu-btn px-6 py-3 rounded-xl hover:text-[#fe7f2d]";
+  if (variant === 'primary') {
+    variantStyle = "neu-btn-primary px-6 py-3 rounded-xl";
+  } else if (variant === 'icon') {
+    variantStyle = "neu-btn w-10 h-10 rounded-full p-0 flex items-center justify-center hover:text-[#fe7f2d]";
+  } else if (variant === 'danger') {
+    variantStyle = "neu-btn px-6 py-3 rounded-xl text-red-400 hover:text-red-500";
+  }
 
   return (
-    <button onClick={onClick} disabled={disabled} className={`${baseStyle} ${variants[variant]} ${className}`}>
+    <button onClick={onClick} disabled={disabled} className={`${baseStyle} ${variantStyle} ${className}`} title={title}>
       {children}
     </button>
   );
@@ -127,20 +130,20 @@ const CopyableField: React.FC<CopyableFieldProps> = ({ label, text, onUpdate, is
 
   return (
     <div className="group">
-      {label && <label className="text-xs font-bold text-white/40 uppercase tracking-widest block mb-2">{label}</label>}
+      {label && <label className="text-xs font-bold text-[#fe7f2d]/70 uppercase tracking-widest block mb-2 ml-1">{label}</label>}
       <div className="relative">
         {isInput ? (
            <input 
               type="text" 
               value={text}
               onChange={(e) => onUpdate && onUpdate(e.target.value)}
-              className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 pr-12 text-white focus:outline-none focus:border-blue-500/50 transition-colors"
+              className="w-full neu-pressed text-[#e0e6ed] px-4 py-3 pr-12 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#fe7f2d]/50 transition-colors bg-transparent border-none"
            />
         ) : (
-           <div onClick={handleCopy} className={`bg-black/20 border border-white/5 rounded-xl ${multiline ? 'p-4 items-start' : 'p-3 items-center'} flex justify-between cursor-pointer hover:bg-white/5 transition-colors group`}>
-              <span className={`text-sm text-white/90 myanmar-text ${multiline ? 'leading-relaxed' : ''}`}>{text || '-'}</span>
+           <div onClick={handleCopy} className={`neu-pressed rounded-xl ${multiline ? 'p-4 items-start' : 'p-3 items-center'} flex justify-between cursor-pointer hover:bg-[#1f3644] transition-colors group`}>
+              <span className={`text-sm text-[#e0e6ed]/90 myanmar-text ${multiline ? 'leading-relaxed' : ''}`}>{text || '-'}</span>
               {!isInput && (
-                <div className={`p-1.5 rounded-lg transition-colors ml-3 shrink-0 ${copied ? 'bg-green-500/20 text-green-400' : 'text-white/20 group-hover:text-white bg-white/5 hover:bg-white/10'}`}>
+                <div className={`p-1.5 rounded-full transition-colors ml-3 shrink-0 ${copied ? 'text-green-400' : 'text-[#fe7f2d]/50 group-hover:text-[#fe7f2d]'}`}>
                    {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                 </div>
               )}
@@ -150,7 +153,7 @@ const CopyableField: React.FC<CopyableFieldProps> = ({ label, text, onUpdate, is
         {isInput && (
            <button 
               onClick={handleCopy}
-              className={`absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg transition-colors ${copied ? 'bg-green-500/20 text-green-400' : 'text-white/20 hover:text-white hover:bg-white/10'}`}
+              className={`absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full transition-colors ${copied ? 'text-green-400' : 'text-[#fe7f2d]/50 hover:text-[#fe7f2d]'}`}
            >
               {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
            </button>
@@ -159,15 +162,6 @@ const CopyableField: React.FC<CopyableFieldProps> = ({ label, text, onUpdate, is
     </div>
   );
 };
-
-const BackgroundBlobs = () => (
-  <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none bg-black">
-    <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-600/20 rounded-full blur-[140px] animate-pulse duration-[6000ms]" />
-    <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-indigo-600/15 rounded-full blur-[140px] animate-pulse delay-1000 duration-[7000ms]" />
-    <div className="absolute top-[30%] left-[30%] w-[40%] h-[40%] bg-cyan-500/15 rounded-full blur-[120px] animate-pulse delay-2000 duration-[8000ms]" />
-    <div className="absolute inset-0 bg-noise opacity-[0.02] mix-blend-overlay"></div>
-  </div>
-);
 
 // --- Main App ---
 
@@ -187,6 +181,7 @@ const App: React.FC = () => {
   const [manualScript, setManualScript] = useState<string>('');
   const [linkUrl, setLinkUrl] = useState<string>('');
   const [isFetchingLink, setIsFetchingLink] = useState(false);
+  const [hasSavedSession, setHasSavedSession] = useState(false);
   const controlsTimeoutRef = useRef<number | null>(null);
   
   const [state, setState] = useState<GenerationState>({
@@ -218,6 +213,86 @@ const App: React.FC = () => {
     isMirrored: false,
     originalMuted: true
   });
+
+  // --- Auto-Save & Restore Logic ---
+
+  useEffect(() => {
+    const saved = localStorage.getItem('recapper_autosave');
+    if (saved) {
+      setHasSavedSession(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    const saveInterval = setInterval(() => {
+      if ((step === Step.Adjustments || step === Step.PreviewExport) && state.recap) {
+        const sessionData = {
+          timestamp: Date.now(),
+          step,
+          uploadMode,
+          manualScript,
+          state: {
+            selectedVoiceId: state.selectedVoiceId,
+            styleInstructions: state.styleInstructions,
+            metadata: state.metadata,
+            recap: state.recap,
+            audioSettings: state.audioSettings,
+            movieTitle: state.movieTitle,
+            narrativePerspective: state.narrativePerspective
+          }
+        };
+        localStorage.setItem('recapper_autosave', JSON.stringify(sessionData));
+        if (!hasSavedSession) setHasSavedSession(true);
+      }
+    }, 5000);
+
+    return () => clearInterval(saveInterval);
+  }, [step, uploadMode, manualScript, state, hasSavedSession]);
+
+  const handleRestoreSession = () => {
+    try {
+      const saved = localStorage.getItem('recapper_autosave');
+      if (saved) {
+        const data = JSON.parse(saved);
+        setUploadMode(data.uploadMode || 'video');
+        setManualScript(data.manualScript || '');
+        
+        setState(prev => ({
+          ...prev,
+          ...data.state,
+          videoBlob: null,
+          videoUrl: null,
+          audioUrl: null
+        }));
+        
+        setStep(data.step || Step.Adjustments);
+        
+        if (data.state.recap && data.state.recap.script) {
+          setOriginalScript(data.state.recap.script);
+        }
+        setLastSyncedScript('');
+      }
+    } catch (e) {
+      console.error("Failed to restore session", e);
+      setErrorMessage("Could not restore previous session data.");
+      localStorage.removeItem('recapper_autosave');
+      setHasSavedSession(false);
+    }
+  };
+
+  const handleDiscardSession = () => {
+    localStorage.removeItem('recapper_autosave');
+    setHasSavedSession(false);
+  };
+
+  const handleResetStudio = () => {
+    setState(prev => ({...prev, videoUrl: null, videoBlob: null, recap: null, audioUrl: null}));
+    setStep(Step.Upload);
+    setManualScript('');
+    setLinkUrl('');
+    localStorage.removeItem('recapper_autosave');
+    setHasSavedSession(false);
+  };
 
   useEffect(() => {
     if (videoRef.current) {
@@ -261,28 +336,22 @@ const App: React.FC = () => {
       targetUrl = 'https://' + targetUrl;
     }
 
-    // Check for social media links specifically to provide better feedback
     const isSocialMedia = /youtube\.com|youtu\.be|tiktok\.com|facebook\.com|instagram\.com|twitter\.com/i.test(targetUrl);
 
     try {
       if (isSocialMedia) {
-          // If it's a known social media link, we throw a specific error because direct fetch will fail CORS or return HTML
           throw new Error("Social Media links (YouTube, TikTok, Facebook, etc.) cannot be processed directly due to platform security restrictions.\n\nPlease download the video first using a tool like 'ssyoutube' or 'snaptik', then upload the video file here.");
       }
 
       let response;
-      
-      // Attempt 1: Direct Fetch (for CORS-enabled servers)
       try {
          response = await fetch(targetUrl);
          if (!response.ok) throw new Error("Direct fetch failed");
       } catch (e) {
-         // Attempt 2: CORS Proxy (corsproxy.io)
          try {
             response = await fetch(`https://corsproxy.io/?${encodeURIComponent(targetUrl)}`);
             if (!response.ok) throw new Error("Proxy 1 failed");
          } catch (e2) {
-            // Attempt 3: AllOrigins Proxy (fallback)
              response = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`);
          }
       }
@@ -299,7 +368,6 @@ const App: React.FC = () => {
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       
-      // Extract filename hint from URL
       let cleanName = "Linked Video";
       try {
         const urlObj = new URL(targetUrl);
@@ -325,7 +393,6 @@ const App: React.FC = () => {
       console.error(error);
       let msg = error.message || "Failed to load video.";
       if (msg === "Failed to fetch") msg = "Network request failed. The URL might be blocked by CORS policy.";
-      
       setErrorMessage(msg);
     } finally {
       setIsFetchingLink(false);
@@ -367,7 +434,6 @@ const App: React.FC = () => {
     setShowVideoControls(true);
     if (controlsTimeoutRef.current) window.clearTimeout(controlsTimeoutRef.current);
     
-    // Auto-hide only if playing. If paused, controls stay visible.
     if (isVideoPlaying) {
       controlsTimeoutRef.current = window.setTimeout(() => {
         setShowVideoControls(false);
@@ -376,7 +442,6 @@ const App: React.FC = () => {
   }, [isVideoPlaying]);
 
   useEffect(() => {
-    // Sync the hide timer when play status changes
     if (isVideoPlaying) {
       handleInteraction();
     } else {
@@ -526,19 +591,8 @@ const App: React.FC = () => {
 
   const togglePlayback = () => {
     if (videoRef.current?.paused) {
-      const videoPromise = videoRef.current.play();
-      if (videoPromise !== undefined) {
-        videoPromise.catch(e => {
-          if (e.name !== 'AbortError') console.error("Video playback error:", e);
-        });
-      }
-      
-      const audioPromise = audioRef.current?.play();
-      if (audioPromise !== undefined) {
-        audioPromise.catch(e => {
-          if (e.name !== 'AbortError') console.error("Audio playback error:", e);
-        });
-      }
+      videoRef.current.play().catch(e => console.error(e));
+      audioRef.current?.play().catch(e => console.error(e));
     } else {
       videoRef.current?.pause();
       audioRef.current?.pause();
@@ -624,17 +678,39 @@ Genre: ${state.recap.genre}
 Logline: ${state.recap.logline}
 Summary: ${state.recap.summary}
 Viral Titles: ${state.recap.titleOptions?.join(', ')}
+Hashtags: ${state.recap.hashtags?.join(' ') || ''}
     `.trim();
     navigator.clipboard.writeText(all);
+  };
+
+  const handleInsertHook = () => {
+    if (!state.recap?.logline) return;
+    const current = state.recap.script;
+    // Avoid double insertion check
+    if (current.startsWith(state.recap.logline)) return;
+    
+    setState(prev => ({
+      ...prev,
+      recap: prev.recap ? { ...prev.recap, script: `${prev.recap.logline}\n\n${current}` } : null
+    }));
+  };
+
+  const handleInsertCTA = () => {
+    if (!state.recap?.cta) return;
+    const current = state.recap.script;
+    if (current.endsWith(state.recap.cta)) return;
+
+    setState(prev => ({
+      ...prev,
+      recap: prev.recap ? { ...prev.recap, script: `${current}\n\n${prev.recap.cta}` } : null
+    }));
   };
 
   const filteredVoices = VOICES.filter(v => genderFilter === 'all' || v.gender === genderFilter);
   const isOutOfSync = state.recap?.script !== lastSyncedScript;
 
   return (
-    <div className="min-h-screen text-slate-100 font-sans selection:bg-blue-500/40 relative">
-      <BackgroundBlobs />
-      
+    <div className="min-h-screen font-sans selection:bg-[#fe7f2d]/30 relative pb-10">
       <audio ref={previewAudioRef} onEnded={() => setPreviewingVoice(null)} className="hidden" />
       <audio 
         ref={finalAudioRef} 
@@ -651,207 +727,212 @@ Viral Titles: ${state.recap.titleOptions?.join(', ')}
         className="hidden" 
       />
 
-      <div className="relative z-10 min-h-screen flex flex-col items-center p-2 md:p-8">
+      <div className="relative z-10 min-h-screen flex flex-col items-center p-4 md:p-8">
         
         {errorMessage && (
           <div className="fixed top-6 z-[100] animate-in slide-in-from-top-4 fade-in duration-500 w-full flex justify-center px-4">
-            <GlassCard className="p-4 flex items-center gap-4 border-red-500/30 bg-red-950/60 !rounded-2xl max-w-2xl w-full">
-              <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center shrink-0">
-                <XCircle className="text-red-400 w-5 h-5" />
+            <NeuCard className="p-4 flex items-center gap-4 bg-red-900/10 border-red-500/20 max-w-2xl w-full">
+              <div className="w-10 h-10 rounded-full neu-pressed flex items-center justify-center shrink-0 text-red-400">
+                <AlertCircle className="w-5 h-5" />
               </div>
               <div className="flex-1">
-                <h4 className="font-bold text-red-100 text-sm">Error</h4>
-                <p className="text-red-200/70 text-xs mt-0.5 whitespace-pre-line">{errorMessage}</p>
+                <h4 className="font-bold text-red-400 text-sm">System Error</h4>
+                <p className="text-red-300/70 text-xs mt-0.5 whitespace-pre-line">{errorMessage}</p>
               </div>
-              <button onClick={() => setErrorMessage(null)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+              <NeuButton variant="icon" onClick={() => setErrorMessage(null)}>
                 <XCircle className="w-4 h-4 text-white/50" />
-              </button>
-            </GlassCard>
+              </NeuButton>
+            </NeuCard>
           </div>
         )}
 
         <div className="w-full max-w-6xl transition-all duration-500 ease-in-out">
           <header className="mb-4 md:mb-10 flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-5">
-              <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-500 flex items-center justify-center shadow-2xl shadow-blue-500/30 border border-white/10 group hover:scale-105 transition-transform">
-                <Video className="text-white w-6 h-6 md:w-7 md:h-7" />
+              <div className="w-14 h-14 neu-flat flex items-center justify-center text-[#fe7f2d]">
+                <Video className="w-7 h-7" />
               </div>
               <div>
-                <h1 className="text-2xl md:text-4xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-white/90 to-white/60">Recapper PRO</h1>
-                <p className="text-white/40 text-[10px] md:text-sm font-semibold flex items-center gap-2 mt-0.5 uppercase tracking-wider">
-                  <Globe className="w-3 md:w-3.5 h-3 md:h-3.5" /> Burmese AI Narration Engine
+                <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-[#fe7f2d]">4ung21n</h1>
+                <p className="text-[#fe7f2d]/60 text-[10px] md:text-xs font-bold flex items-center gap-2 mt-0.5 uppercase tracking-wider">
+                  <Globe className="w-3 h-3" /> Burmese AI Narration Engine
                 </p>
               </div>
             </div>
             
             <div className="flex items-center gap-3 relative">
               {step !== Step.Upload && (
-                <GlassButton variant="secondary" onClick={() => { setState(prev => ({...prev, videoUrl: null, videoBlob: null, recap: null, audioUrl: null})); setStep(Step.Upload); setManualScript(''); setLinkUrl(''); }} className="!py-1.5 md:!py-2 !px-3 md:!px-4 !text-[10px] !rounded-xl uppercase tracking-widest">
-                   <RefreshCw className="w-3 md:w-3.5 h-3 md:h-3.5" /> Reset Studio
-                </GlassButton>
+                <NeuButton variant="secondary" onClick={handleResetStudio} className="!py-2 !px-4 text-xs tracking-widest uppercase">
+                   <RefreshCw className="w-3 h-3 mr-2" /> Reset
+                </NeuButton>
               )}
             </div>
           </header>
 
-          <GlassCard className="min-h-[500px] flex flex-col backdrop-blur-[40px] bg-black/50 !border-white/5 relative !rounded-[32px] md:!rounded-[48px]">
+          <NeuCard className="min-h-[600px] flex flex-col relative !rounded-[32px] p-1">
             
             {(isUpdatingAudio || isRewritingScript) && (
-              <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/85 backdrop-blur-2xl rounded-[32px] md:rounded-[48px] animate-in fade-in duration-300">
-                <div className="relative w-32 h-32 md:w-40 md:h-40 mb-10">
-                  <div className="absolute inset-0 bg-blue-500/15 rounded-full blur-3xl animate-pulse"></div>
-                  <div className="absolute inset-0 border-4 border-white/5 rounded-full"></div>
-                  <div className="absolute inset-0 border-4 border-t-blue-500 border-r-blue-500/20 border-b-transparent border-l-transparent rounded-full animate-spin duration-[2s]"></div>
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    {isRewritingScript ? <Wand2 className="w-10 h-10 md:w-12 md:h-12 text-white animate-float" /> : <Mic className="w-10 h-10 md:w-12 md:h-12 text-white animate-float" />}
-                  </div>
+              <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-[#233d4d]/90 backdrop-blur-sm rounded-[32px] animate-in fade-in duration-300">
+                <div className="relative w-32 h-32 mb-8 flex items-center justify-center">
+                   <div className="absolute w-full h-full rounded-full neu-flat animate-pulse"></div>
+                   {isRewritingScript ? <Wand2 className="w-10 h-10 text-[#fe7f2d] animate-float relative z-10" /> : <Mic className="w-10 h-10 text-[#fe7f2d] animate-float relative z-10" />}
                 </div>
-                <h3 className="text-2xl md:text-3xl font-bold text-white mb-3 bg-clip-text text-transparent bg-gradient-to-r from-blue-100 to-white">
-                  {isRewritingScript ? "Crafting New Narrative" : "Synthesizing Voice"}
+                <h3 className="text-2xl font-bold text-[#e0e6ed] mb-2">
+                  {isRewritingScript ? "Crafting Narrative" : "Synthesizing Audio"}
                 </h3>
-                <p className="text-white/40 text-xs md:text-sm max-w-sm text-center leading-relaxed font-medium px-6">
-                  {isRewritingScript ? "AI is rewriting your script based on the chosen narrative style..." : "Calibrating neural textures and emotional weight for your Burmese narration."}
-                </p>
+                <p className="text-[#fe7f2d] text-sm font-medium tracking-wide">PROCESSING REQUEST...</p>
               </div>
             )}
             
             {step === Step.Upload && (
-              <div className="flex-1 flex flex-col items-center justify-center p-4 md:p-12 text-center animate-in fade-in zoom-in-95 duration-500">
-                <div className="w-full max-w-4xl flex flex-col gap-8">
+              <div className="flex-1 flex flex-col items-center justify-center p-6 md:p-12 text-center animate-in fade-in zoom-in-95 duration-500">
+                <div className="w-full max-w-4xl flex flex-col gap-10">
+                  
+                  {hasSavedSession && (
+                    <div className="w-full max-w-xl mx-auto mb-4 animate-in slide-in-from-top-4 fade-in duration-500">
+                      <NeuCard className="p-4 flex items-center justify-between border-l-4 border-[#fe7f2d]">
+                        <div className="flex items-center gap-4 text-left">
+                          <div className="w-10 h-10 rounded-full neu-pressed flex items-center justify-center text-[#fe7f2d] shrink-0">
+                            <History className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-[#e0e6ed] text-sm">Previous Session</h4>
+                            <p className="text-[#94a3b8] text-xs">Resume where you left off?</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <NeuButton variant="icon" onClick={handleDiscardSession} title="Discard">
+                            <Trash2 className="w-4 h-4 text-[#fe7f2d]" />
+                          </NeuButton>
+                          <NeuButton variant="primary" onClick={handleRestoreSession} className="!py-2 !px-4 !text-xs">
+                            Resume
+                          </NeuButton>
+                        </div>
+                      </NeuCard>
+                    </div>
+                  )}
+
                   {/* Mode Toggle */}
-                  <div className="flex bg-white/5 p-1.5 rounded-2xl border border-white/10 backdrop-blur-md self-center flex-wrap justify-center gap-1">
+                  <div className="flex neu-pressed p-2 rounded-2xl self-center gap-2">
                     <button 
                       onClick={() => setUploadMode('video')} 
-                      className={`px-4 md:px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all duration-400 flex items-center gap-2 ${uploadMode === 'video' ? 'bg-blue-600 text-white shadow-xl' : 'text-white/50 hover:text-white'}`}
+                      className={`px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${uploadMode === 'video' ? 'neu-flat text-[#fe7f2d]' : 'text-[#94a3b8] hover:text-[#e0e6ed]'}`}
                     >
-                      <Video className="w-4 h-4" /> Video Upload
+                      Video File
                     </button>
                     <button 
                       onClick={() => setUploadMode('link')} 
-                      className={`px-4 md:px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all duration-400 flex items-center gap-2 ${uploadMode === 'link' ? 'bg-blue-600 text-white shadow-xl' : 'text-white/50 hover:text-white'}`}
+                      className={`px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${uploadMode === 'link' ? 'neu-flat text-[#fe7f2d]' : 'text-[#94a3b8] hover:text-[#e0e6ed]'}`}
                     >
-                      <Link className="w-4 h-4" /> Social / Link
+                      URL Link
                     </button>
                     <button 
                       onClick={() => setUploadMode('manual')} 
-                      className={`px-4 md:px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all duration-400 flex items-center gap-2 ${uploadMode === 'manual' ? 'bg-blue-600 text-white shadow-xl' : 'text-white/50 hover:text-white'}`}
+                      className={`px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${uploadMode === 'manual' ? 'neu-flat text-[#fe7f2d]' : 'text-[#94a3b8] hover:text-[#e0e6ed]'}`}
                     >
-                      <PenTool className="w-4 h-4" /> Manual Script
+                      Script Only
                     </button>
                   </div>
 
                   {uploadMode === 'video' ? (
                     !state.videoUrl ? (
-                      <label className="group cursor-pointer block relative">
-                        <div className="absolute inset-0 bg-blue-500/10 blur-[80px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-                        <div className="relative border-2 border-dashed border-white/10 group-hover:border-blue-500/40 group-hover:bg-blue-500/[0.02] rounded-[32px] md:rounded-[48px] p-12 md:p-24 transition-all duration-500 flex flex-col items-center justify-center">
-                          <div className="w-16 h-16 md:w-24 md:h-24 bg-white/5 rounded-[24px] md:rounded-[32px] flex items-center justify-center mb-6 md:mb-8 group-hover:scale-110 transition-transform duration-500 border border-white/5 shadow-2xl relative">
-                            <Upload className="w-8 h-8 md:w-10 md:h-10 text-blue-400" />
-                            <div className="absolute -top-1 -right-1 w-3 md:w-4 h-3 md:h-4 bg-blue-500 rounded-full animate-ping opacity-20"></div>
+                      <label className="group cursor-pointer block">
+                        <div className="neu-pressed rounded-[40px] p-16 md:p-24 flex flex-col items-center justify-center hover:shadow-[inset_4px_4px_8px_#1b2f3b,inset_-4px_-4px_8px_#2b4b5f] transition-all">
+                          <div className="w-24 h-24 neu-flat rounded-full flex items-center justify-center mb-8 group-hover:scale-110 transition-transform text-[#fe7f2d]">
+                            <Upload className="w-10 h-10" />
                           </div>
-                          <h3 className="text-2xl md:text-3xl font-extrabold mb-3 md:mb-4 tracking-tight">Drop your Video</h3>
-                          <p className="text-white/40 mb-8 md:mb-10 max-w-xs mx-auto text-sm md:text-base font-medium leading-relaxed">Let AI watch and recap your movie clips in natural Burmese.</p>
-                          <span className="px-6 md:px-8 py-3 md:py-4 bg-white text-black font-bold rounded-2xl text-xs md:text-sm hover:scale-105 transition-all shadow-xl">Select Video File</span>
+                          <h3 className="text-3xl font-bold mb-4 text-[#e0e6ed]">Upload Video</h3>
+                          <p className="text-[#94a3b8] mb-8 font-medium">MP4, MOV, WEBM supported</p>
+                          <span className="neu-btn px-8 py-3 rounded-full text-xs font-bold text-[#fe7f2d] uppercase tracking-widest">Browse Files</span>
                         </div>
                         <input type="file" accept="video/*" className="hidden" onChange={handleVideoUpload} />
                       </label>
                     ) : (
-                      <div className="animate-in fade-in slide-in-from-bottom-8 duration-500 max-w-2xl mx-auto">
-                        <div className="relative rounded-[24px] md:rounded-[36px] overflow-hidden border border-white/10 shadow-2xl bg-black aspect-video mb-8 group">
-                          <video 
-                            ref={videoRef} 
-                            src={state.videoUrl} 
-                            className="w-full h-full object-contain"
-                            onLoadedMetadata={calculateDuration}
-                            controls
-                          />
+                      <div className="animate-in fade-in slide-in-from-bottom-8 duration-500 max-w-2xl mx-auto w-full">
+                        <div className="neu-flat p-2 rounded-[24px] mb-8">
+                          <div className="rounded-[20px] overflow-hidden bg-black aspect-video relative">
+                             <video 
+                              ref={videoRef} 
+                              src={state.videoUrl} 
+                              className="w-full h-full object-contain"
+                              onLoadedMetadata={calculateDuration}
+                              controls
+                            />
+                          </div>
                         </div>
                         
-                        {/* Narrative Perspective Selector */}
-                        <div className="bg-black/30 p-2 rounded-2xl border border-white/5 mb-6 flex items-center justify-between gap-2 max-w-md mx-auto">
+                        <div className="neu-pressed p-2 rounded-2xl mb-8 flex items-center justify-between gap-2 max-w-md mx-auto">
                           <button 
                              onClick={() => setState(prev => ({ ...prev, narrativePerspective: 'third_person' }))}
-                             className={`flex-1 py-3 px-4 rounded-xl text-xs font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${state.narrativePerspective === 'third_person' ? 'bg-blue-600 text-white shadow-lg' : 'text-white/40 hover:text-white hover:bg-white/5'}`}
+                             className={`flex-1 py-3 px-4 rounded-xl text-xs font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${state.narrativePerspective === 'third_person' ? 'neu-flat text-[#fe7f2d]' : 'text-[#94a3b8]'}`}
                           >
                              <User className="w-4 h-4" /> Third Person
                           </button>
                           <button 
                              onClick={() => setState(prev => ({ ...prev, narrativePerspective: 'first_person' }))}
-                             className={`flex-1 py-3 px-4 rounded-xl text-xs font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${state.narrativePerspective === 'first_person' ? 'bg-purple-600 text-white shadow-lg' : 'text-white/40 hover:text-white hover:bg-white/5'}`}
+                             className={`flex-1 py-3 px-4 rounded-xl text-xs font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${state.narrativePerspective === 'first_person' ? 'neu-flat text-[#fe7f2d]' : 'text-[#94a3b8]'}`}
                           >
                              <UserCheck className="w-4 h-4" /> First Person
                           </button>
                         </div>
 
-                        <div className="flex flex-col sm:flex-row items-center gap-4">
-                          <GlassButton variant="secondary" onClick={() => setState(prev => ({ ...prev, videoUrl: null, videoBlob: null }))} className="w-full sm:flex-1">
-                            Replace File
-                          </GlassButton>
-                          <GlassButton variant="primary" onClick={startAnalysisAndScript} className="w-full sm:flex-[2] py-4">
-                            Begin AI Analysis <Sparkles className="w-5 h-5" />
-                          </GlassButton>
+                        <div className="flex gap-6">
+                          <NeuButton onClick={() => setState(prev => ({ ...prev, videoUrl: null, videoBlob: null }))} className="flex-1">
+                            Replace
+                          </NeuButton>
+                          <NeuButton variant="primary" onClick={startAnalysisAndScript} className="flex-[2]">
+                            Start Analysis
+                          </NeuButton>
                         </div>
                       </div>
                     )
                   ) : uploadMode === 'link' ? (
                      <div className="animate-in fade-in slide-in-from-bottom-8 duration-500 w-full flex flex-col items-center">
-                        <div className="bg-black/20 rounded-[32px] p-8 md:p-12 border border-white/5 flex flex-col shadow-inner w-full max-w-2xl relative overflow-hidden">
-                           <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 blur-[60px] rounded-full pointer-events-none"></div>
-                           
-                           <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center mb-6 self-center border border-white/5 shadow-lg">
-                              <Link className="w-8 h-8 text-blue-400" />
+                        <div className="neu-flat p-10 rounded-[32px] w-full max-w-2xl flex flex-col items-center">
+                           <div className="w-16 h-16 neu-pressed rounded-full flex items-center justify-center mb-6 text-[#fe7f2d]">
+                              <Link className="w-8 h-8" />
                            </div>
-                           
-                           <h3 className="text-xl md:text-2xl font-bold mb-2">Fetch from URL</h3>
-                           <p className="text-white/40 text-xs md:text-sm mb-8 leading-relaxed max-w-md self-center">
-                             Paste a direct link to a video file. <br/>
-                             <span className="text-white/20 italic mt-2 block text-[10px]">(Note: YouTube, TikTok, Facebook links are protected by CORS and may not work without a direct download link or proxy.)</span>
-                           </p>
+                           <h3 className="text-2xl font-bold mb-2 text-[#e0e6ed]">Import from URL</h3>
+                           <p className="text-[#94a3b8] text-sm mb-8 text-center">Paste a direct link to a video file.</p>
 
-                           <div className="relative w-full">
+                           <div className="w-full relative mb-8">
                               <input
                                 type="text"
-                                className="w-full bg-black/40 border border-white/10 rounded-xl px-5 py-4 text-white focus:outline-none focus:border-blue-500/50 transition-colors pr-12 text-sm md:text-base font-medium"
+                                className="w-full neu-pressed px-6 py-4 rounded-xl text-[#e0e6ed] focus:outline-none focus:text-[#fe7f2d] transition-colors pr-12 text-base placeholder-[#94a3b8]/50 bg-transparent border-none"
                                 placeholder="https://example.com/video.mp4"
                                 value={linkUrl}
                                 onChange={(e) => setLinkUrl(e.target.value)}
                               />
-                              <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                                 {isFetchingLink ? <RefreshCw className="w-5 h-5 text-blue-500 animate-spin" /> : <Link className="w-5 h-5 text-white/20" />}
+                              <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                                 {isFetchingLink && <RefreshCw className="w-5 h-5 text-[#fe7f2d] animate-spin" />}
                               </div>
                            </div>
                            
-                           <div className="mt-8 flex justify-center">
-                              <GlassButton 
-                                variant="primary" 
-                                onClick={handleLinkFetch} 
-                                className="w-full py-4 shadow-xl"
-                                disabled={!linkUrl.trim() || isFetchingLink}
-                              >
-                                {isFetchingLink ? "Fetching Video..." : "Load Video"} <ArrowRight className="w-5 h-5" />
-                              </GlassButton>
-                           </div>
+                           <NeuButton 
+                              variant="primary" 
+                              onClick={handleLinkFetch} 
+                              className="w-full"
+                              disabled={!linkUrl.trim() || isFetchingLink}
+                            >
+                              Load Video
+                            </NeuButton>
                         </div>
                      </div>
                   ) : (
                     <div className="animate-in fade-in slide-in-from-bottom-8 duration-500 w-full">
-                      <div className="bg-black/20 rounded-[32px] p-6 md:p-10 border border-white/5 flex flex-col shadow-inner">
-                        <label className="text-xs font-bold text-white/30 uppercase tracking-[0.2em] mb-5 block text-left">Production Script (Burmese)</label>
+                      <div className="neu-flat p-8 rounded-[32px]">
+                        <label className="text-xs font-bold text-[#fe7f2d] uppercase tracking-widest mb-4 block">Manual Script</label>
                         <textarea
-                          className="w-full min-h-[300px] bg-transparent text-xl text-white/90 placeholder-white/10 resize-none focus:outline-none leading-relaxed font-medium myanmar-text"
-                          placeholder="Paste or type your script here in conversational Burmese..."
+                          className="w-full min-h-[300px] neu-pressed p-6 rounded-xl text-lg text-[#e0e6ed] placeholder-[#94a3b8]/30 resize-none focus:outline-none myanmar-text bg-transparent border-none"
+                          placeholder="Paste or type your script here..."
                           value={manualScript}
                           onChange={(e) => setManualScript(e.target.value)}
                         />
                       </div>
                       <div className="mt-8 flex justify-center">
-                        <GlassButton 
-                          variant="primary" 
-                          onClick={handleManualProceed} 
-                          className="w-full max-w-lg py-5 shadow-2xl shadow-blue-900/40"
-                          disabled={!manualScript.trim()}
-                        >
-                          Proceed to Studio <ArrowRight className="w-5 h-5" />
-                        </GlassButton>
+                        <NeuButton variant="primary" onClick={handleManualProceed} className="w-full max-w-lg" disabled={!manualScript.trim()}>
+                          Proceed to Studio
+                        </NeuButton>
                       </div>
                     </div>
                   )}
@@ -860,89 +941,62 @@ Viral Titles: ${state.recap.titleOptions?.join(', ')}
             )}
 
             {step === Step.Generating && (
-              <div className="flex-1 flex flex-col items-center justify-center min-h-[400px] p-4 md:p-6 animate-in fade-in duration-700">
-                <div className="w-full max-w-4xl p-1 bg-gradient-to-br from-zinc-800 to-zinc-950 rounded-[32px] md:rounded-[40px] shadow-3xl">
-                  <div className="bg-zinc-950/90 rounded-[31px] md:rounded-[39px] p-6 md:p-14 relative overflow-hidden backdrop-blur-xl">
-                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-4/5 h-40 bg-blue-500/10 blur-[120px] pointer-events-none"></div>
-                    <div className="relative z-10 flex flex-col gap-8 md:gap-12">
-                      <div className="flex items-start justify-between">
-                         <div className="flex items-center gap-3 md:gap-5">
-                            <div className="w-12 h-12 md:w-16 md:h-16 bg-blue-500/10 rounded-2xl border border-blue-500/20 flex items-center justify-center shadow-2xl">
-                               <Cpu className="w-6 h-6 md:w-8 md:h-8 text-blue-500 animate-pulse" />
-                            </div>
-                            <div>
-                               <h3 className="text-xl md:text-3xl font-black text-white tracking-tight uppercase font-mono">Scanning Reels</h3>
-                               <p className="text-[9px] md:text-xs text-zinc-500 font-mono uppercase tracking-[0.3em] mt-1 md:mt-1.5 flex items-center gap-2">
-                                 <Scan className="w-3 h-3" /> Process • {loadingStep === 1 ? 'VISUAL_PASS' : 'SCRIPT_SYNTH'}
-                               </p>
-                            </div>
-                         </div>
-                         <div className="text-right">
-                            <div className="text-3xl md:text-5xl font-black text-blue-500 tabular-nums font-mono tracking-tighter">
-                              {Math.round(progress)}<span className="text-sm md:text-xl align-top ml-1 opacity-50">%</span>
-                            </div>
-                         </div>
+              <div className="flex-1 flex flex-col items-center justify-center min-h-[400px] p-6 animate-in fade-in duration-700">
+                <div className="neu-flat p-12 rounded-[40px] w-full max-w-4xl flex flex-col items-center">
+                   <div className="w-full flex items-center justify-between mb-12">
+                      <div className="flex items-center gap-6">
+                        <div className="w-16 h-16 neu-pressed rounded-2xl flex items-center justify-center text-[#fe7f2d]">
+                           <Cpu className="w-8 h-8 animate-pulse" />
+                        </div>
+                        <div>
+                           <h3 className="text-2xl font-black text-[#e0e6ed] uppercase tracking-tight">Processing</h3>
+                           <p className="text-xs text-[#94a3b8] font-bold uppercase tracking-widest mt-1">
+                             {loadingStep === 1 ? 'Visual Analysis' : 'Script Synthesis'}
+                           </p>
+                        </div>
                       </div>
+                      <div className="text-5xl font-black text-[#fe7f2d] tabular-nums">
+                        {Math.round(progress)}<span className="text-xl ml-1 text-[#94a3b8]">%</span>
+                      </div>
+                   </div>
 
-                      <div className="bg-black/60 rounded-xl md:rounded-2xl p-6 md:p-8 border border-zinc-800/40 backdrop-blur-md min-h-[100px] md:min-h-[140px] flex items-center shadow-inner">
-                         <p className="text-base md:text-xl font-mono text-blue-50/80 leading-relaxed w-full">
-                           <span className="text-blue-500 mr-2 md:mr-3">$</span>
-                           <span className="typing-effect">
-                             {progress < 25 ? "Ingesting raw pixels and extracting key metadata..." :
-                              progress < 50 ? "Deconstructing scene boundaries and character arcs..." :
-                              progress < 75 ? `Synthesizing ${state.narrativePerspective === 'first_person' ? 'First Person' : 'Third Person'} Burmese narrative...` :
-                              "Perfecting pauses and natural Burmese rhythm..."}
-                           </span>
-                           <span className="inline-block w-2 md:w-3 h-4 md:h-6 bg-blue-500 ml-1 md:ml-2 align-middle animate-pulse"></span>
-                         </p>
+                   <div className="w-full neu-pressed h-8 rounded-full overflow-hidden mb-6 relative">
+                      <div 
+                         className="h-full bg-[#fe7f2d] transition-all duration-300 relative"
+                         style={{ width: `${progress}%` }}
+                      >
+                         <div className="absolute inset-0 bg-white/20" style={{backgroundImage: 'linear-gradient(45deg,rgba(255,255,255,.15) 25%,transparent 25%,transparent 50%,rgba(255,255,255,.15) 50%,rgba(255,255,255,.15) 75%,transparent 75%,transparent)', backgroundSize: '1rem 1rem'}}></div>
                       </div>
-
-                      <div className="relative">
-                         <div className="w-full h-8 md:h-10 bg-zinc-900 rounded-lg md:rounded-xl border border-zinc-800/50 overflow-hidden relative shadow-inner">
-                            <div 
-                               className="h-full bg-gradient-to-r from-blue-700 via-blue-500 to-indigo-400 relative transition-all duration-700 ease-out flex items-center shadow-[0_0_25px_rgba(59,130,246,0.4)]"
-                               style={{ width: `${progress}%` }}
-                            >
-                               <div className="absolute inset-0 w-full h-full opacity-30 mix-blend-overlay" 
-                                    style={{ 
-                                      backgroundImage: `repeating-linear-gradient(90deg, transparent, transparent 15px, rgba(0,0,0,0.8) 15px, rgba(0,0,0,0.8) 18px)` 
-                                    }}>
-                               </div>
-                               <div className="absolute right-0 top-0 bottom-0 w-1.5 bg-white/40 blur-[2px]"></div>
-                            </div>
-                         </div>
-                         <div className="flex justify-between mt-3 md:mt-4 text-[9px] md:text-[11px] font-mono text-zinc-600 uppercase tracking-[0.2em] font-bold">
-                            <div className="flex items-center gap-2">
-                              <Film className="w-3 md:w-3.5 h-3 md:h-3.5" />
-                              <span>LIVE_FRAME_FEED</span>
-                            </div>
-                            <span className="text-blue-500/60">AI_CORE_READY</span>
-                         </div>
-                      </div>
-                    </div>
-                  </div>
+                   </div>
+                   
+                   <p className="text-[#94a3b8] font-mono text-sm tracking-wide">
+                      {progress < 25 ? "Ingesting video data..." :
+                       progress < 50 ? "Analyzing scene structure..." :
+                       progress < 75 ? "Generating narrative..." :
+                       "Finalizing output..."}
+                   </p>
                 </div>
               </div>
             )}
 
             {step === Step.ChooseVoice && (
               <div className="flex-1 flex flex-col p-6 md:p-12 animate-in fade-in slide-in-from-right-8 duration-500">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 md:mb-10">
-                  <div className="flex items-center gap-5">
-                    <button onClick={() => setStep(Step.Adjustments)} className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all border border-white/10 shadow-lg">
-                      <ArrowLeft className="w-5 md:w-6 h-5 md:h-6 text-white" />
-                    </button>
+                <div className="flex items-center justify-between mb-10">
+                  <div className="flex items-center gap-6">
+                    <NeuButton variant="icon" onClick={() => setStep(Step.Adjustments)}>
+                      <ArrowLeft className="w-5 h-5" />
+                    </NeuButton>
                     <div>
-                      <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight">Select a Voice</h2>
-                      <p className="text-white/40 text-xs md:text-sm font-medium">Choose the perfect narrator for your recap.</p>
+                      <h2 className="text-3xl font-bold text-[#e0e6ed]">Select Voice</h2>
+                      <p className="text-[#94a3b8] text-sm mt-1">Choose your narrator</p>
                     </div>
                   </div>
-                  <div className="flex bg-white/5 p-1 rounded-xl md:rounded-2xl border border-white/10 backdrop-blur-md self-start md:self-center">
+                  <div className="neu-pressed p-1 rounded-xl flex gap-2">
                     {['all', 'male', 'female'].map((g) => (
                       <button 
                         key={g}
                         onClick={() => setGenderFilter(g as any)} 
-                        className={`px-3 md:px-5 py-2 md:py-2.5 rounded-lg md:rounded-xl text-[10px] md:text-xs font-bold capitalize transition-all duration-400 ${genderFilter === g ? 'bg-white text-black shadow-xl' : 'text-white/50 hover:text-white'}`}
+                        className={`px-4 py-2 rounded-lg text-xs font-bold capitalize transition-all ${genderFilter === g ? 'neu-flat text-[#fe7f2d]' : 'text-[#94a3b8] hover:text-[#e0e6ed]'}`}
                       >
                         {g}
                       </button>
@@ -950,95 +1004,92 @@ Viral Titles: ${state.recap.titleOptions?.join(', ')}
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-5 overflow-y-auto pr-2 h-[400px] md:h-[480px] no-scrollbar pb-12 content-start">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 overflow-y-auto pr-2 pb-12 max-h-[500px] no-scrollbar">
                   {filteredVoices.map(voice => (
-                    <GlassCard 
+                    <NeuCard 
                       key={voice.id} 
                       onClick={() => setState(prev => ({ ...prev, selectedVoiceId: voice.id }))}
-                      className={`p-3 md:p-4 flex items-center gap-3 md:gap-4 group transition-all duration-500 border-2 ${state.selectedVoiceId === voice.id ? 'border-blue-500/50 bg-blue-600/20 shadow-2xl ring-1 ring-blue-500/20' : 'bg-white/[0.03] border-transparent hover:border-white/10 hover:bg-white/10'}`}
+                      className={`p-4 flex items-center gap-4 group border-l-4 ${state.selectedVoiceId === voice.id ? 'border-[#fe7f2d] neu-pressed' : 'border-transparent hover:border-[#fe7f2d]/50'}`}
                     >
-                       <div className={`w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl flex items-center justify-center text-base md:text-lg font-black shrink-0 shadow-inner transition-colors ${state.selectedVoiceId === voice.id ? 'bg-blue-500 text-white' : 'bg-black/40 text-white/40 border border-white/5'}`}>
+                       <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold shrink-0 ${state.selectedVoiceId === voice.id ? 'neu-flat text-[#fe7f2d]' : 'neu-pressed text-[#94a3b8]'}`}>
                          {voice.name[0]}
                        </div>
 
                        <div className="flex-1 min-w-0">
-                         <h3 className={`font-extrabold text-sm md:text-base leading-tight truncate ${state.selectedVoiceId === voice.id ? 'text-white' : 'text-white/80'}`}>{voice.name}</h3>
-                         <p className="text-[9px] md:text-[11px] text-white/40 font-bold uppercase tracking-wider mt-0.5">{voice.gender} • {voice.styleHint.split(',')[0]}</p>
+                         <h3 className={`font-bold text-base ${state.selectedVoiceId === voice.id ? 'text-[#fe7f2d]' : 'text-[#e0e6ed]'}`}>{voice.name}</h3>
+                         <p className="text-xs text-[#94a3b8] font-medium mt-0.5 truncate">{voice.styleHint}</p>
                        </div>
 
-                       <button 
-                          onClick={(e) => playVoicePreview(e, voice)}
-                          className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-all shrink-0 border-2 ${previewingVoice === voice.id ? 'bg-blue-600 border-blue-400 text-white shadow-blue-500/50' : 'bg-white/5 border-white/10 hover:bg-white/20 text-white/60'}`}
+                       <NeuButton 
+                          variant="icon"
+                          onClick={(e) => { e.stopPropagation(); playVoicePreview(e, voice); }}
+                          className={`!w-10 !h-10 ${previewingVoice === voice.id ? '!text-[#fe7f2d] neu-pressed' : 'text-[#94a3b8]'}`}
                         >
-                          {previewingVoice === voice.id ? <Pause className="w-3 md:w-4 h-3 md:h-4 fill-current" /> : <Play className="w-3 md:w-4 h-3 md:h-4 fill-current ml-0.5" />}
-                        </button>
-                    </GlassCard>
+                          {previewingVoice === voice.id ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current ml-0.5" />}
+                        </NeuButton>
+                    </NeuCard>
                   ))}
                 </div>
 
-                <div className="mt-8 flex justify-center">
-                  <GlassButton variant="primary" onClick={() => setStep(Step.StyleInstructions)} className="w-full max-w-lg py-4 md:py-5 shadow-2xl shadow-blue-900/40">
-                    Next: Style Direction <ArrowRight className="w-5 h-5" />
-                  </GlassButton>
+                <div className="mt-6 flex justify-center">
+                  <NeuButton variant="primary" onClick={() => setStep(Step.StyleInstructions)} className="w-full max-w-md">
+                    Next Step
+                  </NeuButton>
                 </div>
               </div>
             )}
 
             {step === Step.StyleInstructions && (
               <div className="flex-1 flex flex-col p-6 md:p-12 animate-in fade-in slide-in-from-right-8 duration-500">
-                <div className="flex items-center gap-5 mb-8 md:mb-10">
-                  <button onClick={() => setStep(Step.ChooseVoice)} className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all shadow-lg border border-white/10">
-                    <ArrowLeft className="w-5 md:w-6 h-5 md:h-6 text-white/70" />
-                  </button>
+                <div className="flex items-center gap-6 mb-10">
+                  <NeuButton variant="icon" onClick={() => setStep(Step.ChooseVoice)}>
+                    <ArrowLeft className="w-5 h-5" />
+                  </NeuButton>
                   <div>
-                    <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight">Vibe & Style</h2>
-                    <p className="text-white/40 text-xs md:text-sm font-medium">Fine-tune how the narrator delivers the story.</p>
+                    <h2 className="text-3xl font-bold text-[#e0e6ed]">Vibe & Style</h2>
+                    <p className="text-[#94a3b8] text-sm mt-1">Direct the AI performance</p>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 md:gap-10 h-full">
-                   <div className="lg:col-span-8 flex flex-col gap-6 md:gap-8">
-                      <div className="bg-black/20 rounded-[24px] md:rounded-[32px] p-6 md:p-8 border border-white/5 flex-1 flex flex-col shadow-inner">
-                        <label className="text-[10px] md:text-xs font-bold text-white/30 uppercase tracking-[0.2em] mb-4 md:mb-5 block">Custom Directives</label>
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 h-full">
+                   <div className="lg:col-span-8 flex flex-col gap-8">
+                      <div className="neu-flat p-8 rounded-[32px] flex-1 flex flex-col">
+                        <label className="text-xs font-bold text-[#fe7f2d] uppercase tracking-widest mb-4 block">Custom Directives</label>
                         <textarea
-                          className="w-full flex-1 bg-transparent text-lg md:text-xl text-white/90 placeholder-white/10 resize-none focus:outline-none leading-relaxed font-medium"
+                          className="w-full flex-1 neu-pressed p-6 rounded-2xl text-xl text-[#e0e6ed] placeholder-[#94a3b8]/30 resize-none focus:outline-none leading-relaxed bg-transparent border-none"
                           placeholder="Example: Speak like a wise elder with deep pauses..."
                           value={state.styleInstructions}
                           onChange={(e) => setState(prev => ({ ...prev, styleInstructions: e.target.value }))}
                         />
                       </div>
-                      <div className="flex flex-col sm:flex-row gap-4 md:gap-5">
-                        <GlassButton variant="secondary" onClick={() => setStep(Step.ChooseVoice)} className="w-full sm:flex-1">Previous</GlassButton>
-                        <GlassButton 
+                      <div className="flex gap-6">
+                        <NeuButton onClick={() => setStep(Step.ChooseVoice)} className="flex-1">Back</NeuButton>
+                        <NeuButton 
                            variant="primary" 
                            onClick={handleUpdateAudio} 
                            disabled={isUpdatingAudio}
-                           className="w-full sm:flex-[2] py-4 md:py-5"
+                           className="flex-[2]"
                         >
-                           {isUpdatingAudio ? (
-                             <>Synthesizing... <RefreshCw className="w-5 h-5 animate-spin" /></>
-                           ) : (
-                             <>Generate Narration <Sparkles className="w-5 h-5" /></>
-                           )}
-                        </GlassButton>
+                           {isUpdatingAudio ? "Synthesizing..." : "Generate Narration"}
+                        </NeuButton>
                       </div>
                    </div>
                    
-                   <div className="lg:col-span-4 flex flex-col gap-3.5 h-[350px] md:h-[520px] overflow-y-auto no-scrollbar mask-linear-fade pr-2">
-                      <label className="text-[10px] md:text-xs font-bold text-white/30 uppercase tracking-[0.2em] mb-2 px-3">Quick Presets</label>
+                   <div className="lg:col-span-4 flex flex-col gap-4 h-[500px] overflow-y-auto no-scrollbar pr-2">
+                      <label className="text-xs font-bold text-[#94a3b8] uppercase tracking-widest mb-2 px-2">Presets</label>
                       {STYLE_SUGGESTIONS.map((style, idx) => (
                         <button
                           key={idx}
                           onClick={() => setState(prev => ({ ...prev, styleInstructions: style.text }))}
-                          className={`group text-left p-4 md:p-5 rounded-[20px] md:rounded-[24px] border-2 transition-all duration-400 ${state.styleInstructions === style.text ? 'bg-blue-600/15 border-blue-500/40 shadow-xl' : 'bg-white/[0.03] border-transparent hover:bg-white/5'}`}
+                          className={`text-left p-5 rounded-[20px] transition-all duration-200 ${state.styleInstructions === style.text ? 'neu-pressed border-l-4 border-[#fe7f2d]' : 'neu-flat hover:translate-x-1'}`}
                         >
-                          <div className="flex items-center gap-3 md:gap-4 mb-2">
-                             <div className={`w-7 h-7 md:w-8 md:h-8 rounded-lg md:rounded-xl flex items-center justify-center transition-colors ${state.styleInstructions === style.text ? 'bg-blue-500 text-white' : 'bg-white/5 text-white/30'}`}>
+                          <div className="flex items-center gap-4 mb-2">
+                             <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${state.styleInstructions === style.text ? 'text-[#fe7f2d]' : 'text-[#94a3b8]'}`}>
                                {style.icon}
                              </div>
-                             <span className={`font-extrabold text-xs md:text-sm ${state.styleInstructions === style.text ? 'text-white' : 'text-white/70'}`}>{style.label}</span>
+                             <span className={`font-bold text-sm ${state.styleInstructions === style.text ? 'text-[#fe7f2d]' : 'text-[#e0e6ed]'}`}>{style.label}</span>
                           </div>
-                          <p className="text-[10px] md:text-[11px] text-white/30 leading-relaxed pl-10 md:pl-12 font-medium">{style.text.substring(0, 70)}...</p>
+                          <p className="text-xs text-[#94a3b8] leading-relaxed pl-12">{style.text.substring(0, 60)}...</p>
                         </button>
                       ))}
                    </div>
@@ -1047,318 +1098,247 @@ Viral Titles: ${state.recap.titleOptions?.join(', ')}
             )}
 
             {step === Step.Adjustments && state.recap && (
-              <div className="flex-1 flex flex-col animate-in fade-in duration-500">
-                {/* Header Overlay */}
-                <div className="flex items-center justify-between p-4 md:p-6 bg-gradient-to-b from-black/80 to-transparent absolute top-0 left-0 right-0 z-20 pointer-events-none">
-                  <div className="flex items-center gap-3 md:gap-4 pointer-events-auto">
-                    <button onClick={() => { setState(prev => ({...prev, videoUrl: null, videoBlob: null, recap: null, audioUrl: null})); setStep(Step.Upload); }} className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all border border-white/10 backdrop-blur-md">
-                      <ArrowLeft className="w-5 md:w-6 h-5 md:h-6 text-white/70" />
-                    </button>
-                    <div>
-                      <h2 className="text-base md:text-xl font-black tracking-tight uppercase font-mono text-white/90">Studio Console</h2>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
-                        <p className="text-[8px] md:text-[10px] text-emerald-400 font-black uppercase tracking-[0.2em]">Live Session</p>
-                      </div>
-                    </div>
+              <div className="flex-1 flex flex-col animate-in fade-in duration-500 h-full">
+                <div className="flex items-center justify-between p-6 border-b border-[#233d4d]">
+                  <div className="flex items-center gap-4">
+                    <NeuButton variant="icon" onClick={() => { setState(prev => ({...prev, videoUrl: null, videoBlob: null, recap: null, audioUrl: null})); setStep(Step.Upload); }}>
+                      <ArrowLeft className="w-5 h-5" />
+                    </NeuButton>
+                    <h2 className="text-xl font-black text-[#fe7f2d] uppercase tracking-widest">Studio Console</h2>
                   </div>
-                  <div className="flex items-center gap-2 pointer-events-auto">
-                    <GlassButton variant="ghost" onClick={() => setState(prev => ({ ...prev, recap: prev.recap ? {...prev.recap, script: originalScript} : null }))} className="!text-[8px] md:!text-[10px] !py-2 md:!py-2.5 !px-3 md:!px-4 border border-white/10 !rounded-xl font-black uppercase tracking-widest bg-black/40 backdrop-blur-md">
-                       <History className="w-3 md:w-3.5 h-3 md:h-3.5" /> Revert
-                    </GlassButton>
-                  </div>
+                  <NeuButton onClick={() => setState(prev => ({ ...prev, recap: prev.recap ? {...prev.recap, script: originalScript} : null }))} className="!py-2 !px-4 text-xs">
+                     <History className="w-3 h-3 mr-2" /> Revert
+                  </NeuButton>
                 </div>
 
-                {/* Hero Player Area */}
-                <div 
-                  className="relative flex-none h-[45vh] md:h-[55vh] w-full bg-black group overflow-hidden"
-                  onMouseMove={handleInteraction}
-                  onMouseEnter={handleInteraction}
-                  onMouseLeave={() => isVideoPlaying && setShowVideoControls(false)}
-                  onTouchStart={handleInteraction}
-                >
-                  {state.videoUrl ? (
-                    <video 
-                       ref={videoRef} 
-                       src={state.videoUrl!} 
-                       onTimeUpdate={syncPlayers} 
-                       onClick={togglePlayback}
-                       onPlay={() => { setIsVideoPlaying(true); }}
-                       onPause={() => { setIsVideoPlaying(false); }}
-                       className={`w-full h-full object-contain transition-transform duration-500 ${videoSettings.isMirrored ? '-scale-x-100' : 'scale-x-100'}`} 
-                    />
-                  ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-900/50">
-                       <div className="w-24 h-24 rounded-full bg-blue-500/10 flex items-center justify-center border border-blue-500/20 mb-4">
-                          <Mic className="w-10 h-10 text-blue-400" />
-                       </div>
-                       <p className="text-white/40 font-mono text-xs uppercase tracking-widest">Manual Script Mode</p>
-                    </div>
-                  )}
-                  <audio ref={audioRef} src={state.audioUrl || ''} />
+                <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 p-6 overflow-hidden">
+                  {/* Left Column: Player & Script */}
+                  <div className="lg:col-span-8 flex flex-col gap-6 h-full overflow-hidden">
+                    <div 
+                      className="relative neu-flat p-2 rounded-[24px] aspect-video group overflow-hidden"
+                      onMouseMove={handleInteraction}
+                      onMouseEnter={handleInteraction}
+                      onMouseLeave={() => isVideoPlaying && setShowVideoControls(false)}
+                      onTouchStart={handleInteraction}
+                    >
+                       <div className="w-full h-full bg-black rounded-[20px] overflow-hidden relative">
+                          {state.videoUrl ? (
+                            <video 
+                               ref={videoRef} 
+                               src={state.videoUrl!} 
+                               onTimeUpdate={syncPlayers} 
+                               onClick={togglePlayback}
+                               onPlay={() => setIsVideoPlaying(true)}
+                               onPause={() => setIsVideoPlaying(false)}
+                               className={`w-full h-full object-contain ${videoSettings.isMirrored ? '-scale-x-100' : 'scale-x-100'}`} 
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-[#94a3b8]">
+                               No Video Source
+                            </div>
+                          )}
+                          <audio ref={audioRef} src={state.audioUrl || ''} />
 
-                  {/* Video Controls Overlay */}
-                  <div className={`absolute inset-0 z-10 flex flex-col justify-center items-center bg-black/30 backdrop-blur-[1px] transition-all duration-300 ${showVideoControls ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-                    <div className="flex items-center gap-8 md:gap-12 scale-90 md:scale-100">
-                      <button onClick={(e) => { e.stopPropagation(); skipVideo(-5); }} className="p-3 md:p-4 hover:bg-white/10 rounded-full text-white/60 hover:text-white transition-all transform active:scale-90">
-                         <Rewind className="w-8 md:w-10 h-8 md:h-10" />
-                      </button>
-
-                      <button onClick={(e) => { e.stopPropagation(); togglePlayback(); }} className="w-20 h-20 md:w-24 md:h-24 flex items-center justify-center bg-white text-black rounded-full hover:scale-105 active:scale-95 transition-all shadow-3xl">
-                         {isVideoPlaying ? <Pause className="w-10 md:w-12 h-10 md:h-12 fill-current" /> : <Play className="w-10 md:w-12 h-10 md:h-12 fill-current ml-2" />}
-                      </button>
-
-                      <button onClick={(e) => { e.stopPropagation(); skipVideo(5); }} className="p-3 md:p-4 hover:bg-white/10 rounded-full text-white/60 hover:text-white transition-all transform active:scale-90">
-                         <FastForward className="w-8 md:w-10 h-8 md:h-10" />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Bottom Player Overlay Bar */}
-                  <div className={`absolute bottom-0 left-0 right-0 z-20 p-4 md:p-6 bg-gradient-to-t from-black/80 to-transparent flex items-center justify-between transition-all duration-300 ${showVideoControls ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
-                    <div className="flex items-center gap-4">
-                      <div className="bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10 flex items-center gap-3">
-                        <span className="text-[10px] md:text-xs font-mono font-bold text-white/90 tabular-nums">
-                          {formatTime(videoRef.current?.currentTime || 0)}
-                        </span>
-                        <div className="w-1 h-1 rounded-full bg-white/20"></div>
-                        <span className="text-[10px] md:text-xs font-mono font-bold text-white/40 tabular-nums">
-                          {state.metadata?.formattedDuration}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3 pointer-events-auto">
-                      {/* Audio Control Drawer Toggle */}
-                      <div className="relative">
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); setIsAudioDrawerOpen(!isAudioDrawerOpen); handleInteraction(); }}
-                          className={`w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center border border-white/10 transition-all ${isAudioDrawerOpen ? 'bg-blue-600 border-blue-400 text-white' : 'bg-black/40 backdrop-blur-md text-white/60 hover:bg-black/60'}`}
-                        >
-                          {state.audioSettings.originalVolume === 0 ? <VolumeX className="w-5 md:w-6 h-5 md:h-6" /> : <Volume2 className="w-5 md:w-6 h-5 md:h-6" />}
-                        </button>
-                        
-                        {/* Compact Audio Drawer */}
-                        {isAudioDrawerOpen && (
-                          <div className="absolute bottom-full right-0 mb-3 w-48 bg-black/80 backdrop-blur-xl border border-white/10 p-4 rounded-2xl shadow-3xl animate-in fade-in slide-in-from-bottom-2 duration-300">
-                             <div className="flex items-center justify-between mb-4">
-                               <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">Master Volume</span>
-                               <button onClick={() => setIsAudioDrawerOpen(false)}><XCircle className="w-3.5 h-3.5 text-white/20" /></button>
+                          {/* Controls */}
+                          <div className={`absolute inset-0 bg-black/40 flex items-center justify-center transition-opacity duration-300 ${showVideoControls ? 'opacity-100' : 'opacity-0'}`}>
+                             <div className="flex gap-8 items-center">
+                                <button onClick={(e) => { e.stopPropagation(); skipVideo(-5); }} className="text-white/80 hover:text-[#fe7f2d] transition-colors"><Rewind className="w-8 h-8" /></button>
+                                <button onClick={(e) => { e.stopPropagation(); togglePlayback(); }} className="w-16 h-16 bg-[#fe7f2d] rounded-full flex items-center justify-center text-white shadow-lg hover:scale-105 transition-transform">
+                                   {isVideoPlaying ? <Pause className="w-6 h-6 fill-current" /> : <Play className="w-6 h-6 fill-current ml-1" />}
+                                </button>
+                                <button onClick={(e) => { e.stopPropagation(); skipVideo(5); }} className="text-white/80 hover:text-[#fe7f2d] transition-colors"><FastForward className="w-8 h-8" /></button>
                              </div>
-                             <div className="space-y-4">
-                               <div className="flex flex-col gap-2">
-                                 <div className="flex justify-between text-[8px] font-bold text-white/30 uppercase tracking-widest">
-                                   <span>Source Audio</span>
-                                   <span>{Math.round(state.audioSettings.originalVolume * 100)}%</span>
-                                 </div>
-                                 <input
-                                   type="range"
-                                   min="0"
-                                   max="1"
-                                   step="0.05"
-                                   value={state.audioSettings.originalVolume}
-                                   onChange={(e) => setState(prev => ({...prev, audioSettings: {...prev.audioSettings, originalVolume: parseFloat(e.target.value)}}))}
-                                   className="w-full h-1 bg-white/10 rounded-full appearance-none cursor-pointer accent-blue-500"
-                                 />
-                               </div>
-                               <div className="flex flex-col gap-2">
-                                 <div className="flex justify-between text-[8px] font-bold text-white/30 uppercase tracking-widest">
-                                   <span>AI Narrator</span>
-                                   <span>{Math.round(state.audioSettings.narrationVolume * 100)}%</span>
-                                 </div>
-                                 <input
-                                   type="range"
-                                   min="0"
-                                   max="1"
-                                   step="0.05"
-                                   value={state.audioSettings.narrationVolume}
-                                   onChange={(e) => {
-                                      const vol = parseFloat(e.target.value);
-                                      if (audioRef.current) audioRef.current.volume = vol;
-                                      setState(prev => ({...prev, audioSettings: {...prev.audioSettings, narrationVolume: vol}}));
-                                   }}
-                                   className="w-full h-1 bg-white/10 rounded-full appearance-none cursor-pointer accent-emerald-500"
-                                 />
-                               </div>
+                             
+                             <div className="absolute bottom-4 left-4 right-4 flex justify-between items-center">
+                                <span className="text-xs font-mono font-bold text-white bg-black/50 px-2 py-1 rounded">
+                                  {formatTime(videoRef.current?.currentTime || 0)} / {state.metadata?.formattedDuration}
+                                </span>
+                                <div className="flex gap-2">
+                                  <button onClick={(e) => { e.stopPropagation(); setIsAudioDrawerOpen(!isAudioDrawerOpen); }} className="p-2 bg-black/50 rounded-full text-white hover:text-[#fe7f2d]"><Volume2 className="w-4 h-4" /></button>
+                                  {state.videoUrl && <button onClick={(e) => { e.stopPropagation(); videoRef.current?.requestFullscreen(); }} className="p-2 bg-black/50 rounded-full text-white hover:text-[#fe7f2d]"><Maximize2 className="w-4 h-4" /></button>}
+                                </div>
                              </div>
                           </div>
-                        )}
-                      </div>
-                      
-                      {state.videoUrl && (
-                        <button onClick={(e) => { e.stopPropagation(); videoRef.current?.requestFullscreen(); }} className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-black/40 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/60 hover:bg-black/60 transition-all">
-                          <Maximize2 className="w-5 md:w-6 h-5 md:h-6" />
-                        </button>
-                      )}
+                       </div>
+                    </div>
+
+                    <div className="flex-1 neu-flat rounded-[24px] flex flex-col overflow-hidden">
+                       <div className="p-4 border-b border-[#233d4d] flex justify-between items-center bg-[#233d4d]/30">
+                          <span className="text-xs font-bold text-[#94a3b8] uppercase tracking-widest flex items-center gap-2">
+                             <FileText className="w-4 h-4" /> Script Editor
+                          </span>
+                          <div className="flex items-center gap-2">
+                             {state.recap?.logline && (
+                               <button onClick={handleInsertHook} className="text-[10px] font-bold text-[#fe7f2d] bg-[#fe7f2d]/10 px-2 py-1 rounded border border-[#fe7f2d]/20 hover:bg-[#fe7f2d]/20 transition-colors">
+                                 + Hook
+                               </button>
+                             )}
+                             {state.recap?.cta && (
+                               <button onClick={handleInsertCTA} className="text-[10px] font-bold text-[#fe7f2d] bg-[#fe7f2d]/10 px-2 py-1 rounded border border-[#fe7f2d]/20 hover:bg-[#fe7f2d]/20 transition-colors">
+                                 + CTA
+                               </button>
+                             )}
+                             {isOutOfSync && <span className="text-[10px] font-bold text-amber-500 bg-amber-500/10 px-2 py-1 rounded">Modified</span>}
+                          </div>
+                       </div>
+                       <textarea 
+                          className="flex-1 w-full bg-[#233d4d] p-6 text-lg text-[#e0e6ed] resize-none focus:outline-none myanmar-text border-none shadow-[inset_4px_4px_10px_#1b2f3b,inset_-4px_-4px_10px_#2b4b5f]"
+                          value={state.recap.script || ''}
+                          onChange={(e) => setState(prev => ({ ...prev, recap: prev.recap ? { ...prev.recap, script: e.target.value } : null }))}
+                       />
                     </div>
                   </div>
-                </div>
 
-                {/* Content Area: Script & Styles */}
-                <div className="flex-1 flex flex-col md:flex-row bg-black/30 backdrop-blur-sm border-t border-white/5">
-                  <div className="flex-1 flex flex-col border-b md:border-b-0 md:border-r border-white/5">
-                    <div className="p-4 md:p-5 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
-                      <div className="flex items-center gap-3">
-                        <FileText className="w-4 h-4 text-blue-400" />
-                        <span className="text-[10px] md:text-[11px] font-black uppercase tracking-[0.2em] text-white/50">Production Script</span>
-                      </div>
-                      {isOutOfSync && (
-                        <div className="flex items-center gap-2 text-[8px] md:text-[10px] font-black text-amber-500 bg-amber-500/10 px-2.5 py-1 rounded-xl border border-amber-500/20 animate-pulse uppercase tracking-widest">
-                          <AlertCircle className="w-3 h-3" /> Modified
-                        </div>
-                      )}
+                  {/* Right Column: Controls */}
+                  <div className="lg:col-span-4 flex flex-col gap-6">
+                    <NeuCard className="p-6">
+                       <label className="text-xs font-bold text-[#fe7f2d] uppercase tracking-widest mb-4 block">Style Control</label>
+                       <div className="flex flex-wrap gap-2 mb-6">
+                          {NARRATIVE_STYLES.map(style => (
+                            <button 
+                              key={style.id}
+                              onClick={() => setSelectedNarrativeStyle(style.id)}
+                              className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all ${selectedNarrativeStyle === style.id ? 'neu-pressed text-[#fe7f2d] border border-[#fe7f2d]/20' : 'neu-flat text-[#94a3b8]'}`}
+                            >
+                              {style.label}
+                            </button>
+                          ))}
+                       </div>
+                       <NeuButton onClick={handleRewriteScript} disabled={isRewritingScript} className="w-full text-xs">
+                          {isRewritingScript ? "Rewriting..." : "Rewrite Screenplay"}
+                       </NeuButton>
+                    </NeuCard>
+
+                    <div className="flex flex-col gap-4">
+                       <NeuButton 
+                          onClick={() => setStep(Step.ChooseVoice)}
+                          className="w-full !py-4"
+                       >
+                          {!state.audioUrl ? "Voice Over Settings" : "Change Voice"}
+                       </NeuButton>
+                       
+                       {state.audioUrl && (
+                          <NeuButton 
+                             variant="primary"
+                             onClick={() => setStep(Step.PreviewExport)} 
+                             className="w-full !py-4"
+                          >
+                             Finalize Production
+                          </NeuButton>
+                       )}
                     </div>
                     
-                    <textarea 
-                       className="flex-1 w-full bg-transparent p-6 md:p-8 text-lg md:text-xl leading-relaxed text-white/90 placeholder-white/5 resize-none focus:outline-none myanmar-text overflow-y-auto no-scrollbar min-h-[250px]"
-                       value={state.recap.script || ''}
-                       onChange={(e) => {
-                         const newScript = e.target.value;
-                         setState(prev => ({ ...prev, recap: prev.recap ? { ...prev.recap, script: newScript } : null }));
-                       }}
-                       spellCheck={false}
-                       placeholder="AI script draft..."
-                    />
-                  </div>
-
-                  <div className="w-full md:w-[320px] lg:w-[400px] flex flex-col shrink-0 bg-white/[0.01]">
-                    <div className="p-5 flex flex-col gap-5">
-                       <div className="bg-black/40 p-4 rounded-2xl border border-white/5 shadow-inner">
-                          <label className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em] mb-3 block">Narrative Identity</label>
-                          <div className="flex flex-wrap gap-2">
-                            {NARRATIVE_STYLES.map(style => (
-                              <button 
-                                key={style.id}
-                                onClick={() => setSelectedNarrativeStyle(style.id)}
-                                className={`px-3 py-1.5 rounded-lg text-[9px] font-bold border transition-all ${selectedNarrativeStyle === style.id ? 'bg-blue-600 border-blue-400 text-white shadow-lg' : 'bg-white/5 border-white/10 text-white/40 hover:text-white/60'}`}
-                              >
-                                {style.label}
-                              </button>
-                            ))}
+                    {isAudioDrawerOpen && (
+                      <NeuCard className="p-4 mt-auto">
+                        <div className="flex justify-between mb-4"><span className="text-xs font-bold text-[#94a3b8]">Mixer</span></div>
+                        <div className="space-y-4">
+                          <div>
+                            <span className="text-[10px] text-[#94a3b8] uppercase block mb-1">Source</span>
+                            <input type="range" min="0" max="1" step="0.05" value={state.audioSettings.originalVolume} onChange={(e) => setState(prev => ({...prev, audioSettings: {...prev.audioSettings, originalVolume: parseFloat(e.target.value)}}))} className="w-full accent-[#fe7f2d]" />
                           </div>
-                          <button 
-                             onClick={handleRewriteScript}
-                             disabled={isRewritingScript}
-                             className="w-full mt-4 py-3 bg-indigo-600/20 hover:bg-indigo-600/40 border border-indigo-500/30 disabled:opacity-50 text-indigo-100 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-2"
-                          >
-                            {isRewritingScript ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Wand2 className="w-3.5 h-3.5" />} Rewrite Screenplay
-                          </button>
-                       </div>
-
-                       <div className="flex flex-col gap-3">
-                         <GlassButton 
-                           onClick={() => setStep(Step.ChooseVoice)}
-                           variant={!state.audioUrl ? 'primary' : 'glass'}
-                           className="w-full font-black uppercase tracking-widest text-[10px] !py-4"
-                         >
-                            {!state.audioUrl ? (
-                              <>Finalize & Voice Over <Mic className="w-4 h-4" /></>
-                            ) : (
-                              <>Change Vocal Profile <Settings2 className="w-4 h-4" /></>
-                            )}
-                         </GlassButton>
-                         
-                         {state.audioUrl && (
-                            <GlassButton 
-                               onClick={() => setStep(Step.PreviewExport)} 
-                               className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 border-emerald-400/30 shadow-2xl shadow-emerald-500/20 font-black uppercase tracking-widest text-[10px] !py-4"
-                            >
-                               Complete Production <CheckCircle className="w-4 h-4" />
-                            </GlassButton>
-                         )}
-                       </div>
-                    </div>
+                          <div>
+                            <span className="text-[10px] text-[#94a3b8] uppercase block mb-1">Voice</span>
+                            <input type="range" min="0" max="1" step="0.05" value={state.audioSettings.narrationVolume} onChange={(e) => { const vol = parseFloat(e.target.value); if(audioRef.current) audioRef.current.volume = vol; setState(prev => ({...prev, audioSettings: {...prev.audioSettings, narrationVolume: vol}})); }} className="w-full accent-[#fe7f2d]" />
+                          </div>
+                        </div>
+                      </NeuCard>
+                    )}
                   </div>
                 </div>
               </div>
             )}
 
             {step === Step.PreviewExport && state.recap && (
-               <div className="flex-1 flex flex-col p-6 md:p-20 animate-in fade-in slide-in-from-bottom-8 duration-500">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 md:mb-12">
-                    <div className="flex items-center gap-5">
-                      <button onClick={() => setStep(Step.Adjustments)} className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all border border-white/10 shadow-lg">
-                        <ArrowLeft className="w-6 md:w-7 h-6 md:h-7 text-white/70" />
-                      </button>
-                      <div>
-                        <h2 className="text-3xl md:text-4xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-br from-white to-white/40">Ready for Export</h2>
-                        <p className="text-white/40 text-[10px] md:text-sm font-bold uppercase tracking-[0.2em] mt-1">Project Output Ready</p>
-                      </div>
+               <div className="flex-1 flex flex-col p-8 md:p-16 animate-in fade-in slide-in-from-bottom-8 duration-500">
+                  <div className="flex items-center justify-between mb-12">
+                    <div className="flex items-center gap-6">
+                      <NeuButton variant="icon" onClick={() => setStep(Step.Adjustments)}>
+                        <ArrowLeft className="w-5 h-5" />
+                      </NeuButton>
+                      <h2 className="text-4xl font-black text-[#fe7f2d]">Digital Masters</h2>
                     </div>
-                    <GlassButton variant="ghost" onClick={copyAllMetadata} className="!text-[10px] !py-2.5 md:!py-3 !px-4 md:!px-5 border border-white/10 font-black uppercase tracking-widest">
-                       <Copy className="w-4 h-4" /> Copy All Assets
-                    </GlassButton>
+                    <NeuButton onClick={copyAllMetadata} className="text-xs">
+                       <Copy className="w-4 h-4 mr-2" /> Copy All Assets
+                    </NeuButton>
                   </div>
 
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12">
-                     <div className="space-y-6 md:space-y-8">
-                        <div className="bg-white/[0.03] border border-white/10 rounded-[32px] md:rounded-[48px] p-6 md:p-10 backdrop-blur-3xl shadow-3xl">
-                           <h3 className="text-lg md:text-xl font-black mb-6 md:mb-8 flex items-center gap-3 text-white/80 uppercase tracking-widest"><Download className="w-5 md:w-6 h-5 md:h-6 text-blue-400" /> Digital Masters</h3>
-                           <div className="space-y-4 md:space-y-5">
-                              <div className="bg-black/40 p-6 md:p-8 rounded-[24px] md:rounded-[32px] border border-white/5 flex items-center justify-between group hover:bg-black/60 transition-all shadow-lg">
-                                 <div className="flex items-center gap-4 md:gap-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                     <div className="space-y-8">
+                        <div className="neu-flat p-8 rounded-[32px]">
+                           <h3 className="text-lg font-bold text-[#e0e6ed] mb-8 flex items-center gap-3"><Download className="w-5 h-5 text-[#fe7f2d]" /> Export Files</h3>
+                           
+                           <div className="space-y-5">
+                              {/* Audio Export */}
+                              <div className="neu-pressed p-6 rounded-2xl flex items-center justify-between group">
+                                 <div className="flex items-center gap-6">
                                     <div onClick={() => {
                                       if (isFinalAudioPlaying) {
                                         finalAudioRef.current?.pause();
                                       } else {
                                         finalAudioRef.current?.play().catch(e => { if (e.name !== 'AbortError') console.error(e); });
                                       }
-                                    }} className="w-12 h-12 md:w-16 md:h-16 rounded-[20px] md:rounded-[24px] bg-white text-black flex items-center justify-center cursor-pointer hover:scale-105 active:scale-95 transition-all shadow-2xl">
-                                       {isFinalAudioPlaying ? <Pause className="w-5 md:w-7 h-5 md:h-7 fill-current" /> : <Play className="w-5 md:w-7 h-5 md:h-7 fill-current ml-1" />}
+                                    }} className="w-14 h-14 neu-flat rounded-full flex items-center justify-center cursor-pointer text-[#fe7f2d] hover:scale-105 transition-transform">
+                                       {isFinalAudioPlaying ? <Pause className="w-6 h-6 fill-current" /> : <Play className="w-6 h-6 fill-current ml-1" />}
                                     </div>
                                     <div>
-                                       <div className="font-black text-base md:text-lg uppercase tracking-tight">Vocal Narration</div>
-                                       <div className="text-[9px] md:text-[10px] text-white/30 font-mono font-bold uppercase tracking-widest mt-1">WAV • 48kHz • 24-BIT • {formatTime(state.audioDuration)}</div>
+                                       <div className="font-bold text-[#e0e6ed]">Vocal Narration</div>
+                                       <div className="text-[10px] text-[#94a3b8] font-mono mt-1">WAV • 48kHz • {formatTime(state.audioDuration)}</div>
                                     </div>
                                  </div>
-                                 <button onClick={exportAudio} className="w-10 h-10 md:w-12 md:h-12 rounded-xl border border-white/10 flex items-center justify-center hover:bg-white hover:text-black transition-all">
-                                    <Download className="w-4 md:w-5 h-4 md:h-5" />
-                                 </button>
+                                 <NeuButton variant="icon" onClick={exportAudio}>
+                                    <Download className="w-5 h-5" />
+                                 </NeuButton>
                               </div>
 
-                              <button onClick={exportScript} className="w-full flex items-center justify-between p-6 md:p-8 bg-white/5 hover:bg-white/10 rounded-[24px] md:rounded-[32px] border border-white/5 transition-all group">
-                                 <div className="flex items-center gap-4 md:gap-6">
-                                    <div className="w-12 h-12 md:w-16 md:h-16 rounded-[20px] md:rounded-[24px] bg-white/5 flex items-center justify-center border border-white/10 text-white/40">
-                                       <FileText className="w-6 md:w-7 h-6 md:h-7" />
+                              {/* Script Export */}
+                              <div className="neu-flat p-6 rounded-2xl flex items-center justify-between group border border-transparent hover:border-[#fe7f2d]/20 transition-all">
+                                 <div className="flex items-center gap-6">
+                                    <div className="w-14 h-14 neu-pressed rounded-full flex items-center justify-center text-[#94a3b8]">
+                                       <FileText className="w-6 h-6" />
                                     </div>
-                                    <div className="text-left">
-                                       <div className="font-black text-base md:text-lg uppercase tracking-tight group-hover:text-blue-400 transition-colors">Screenplay TXT</div>
-                                       <div className="text-[9px] md:text-[10px] text-white/30 font-mono font-bold uppercase tracking-widest mt-1">Text • UTF-8 • Burmese</div>
+                                    <div>
+                                       <div className="font-bold text-[#e0e6ed]">Screenplay</div>
+                                       <div className="text-[10px] text-[#94a3b8] font-mono mt-1">TXT • Burmese</div>
                                     </div>
                                  </div>
-                                 <Download className="w-4 md:w-5 h-4 md:h-5 text-white/20 group-hover:text-white transition-all" />
-                              </button>
+                                 <NeuButton variant="icon" onClick={exportScript}>
+                                    <Download className="w-5 h-5" />
+                                 </NeuButton>
+                              </div>
 
-                              <button onClick={exportSRT} className="w-full flex items-center justify-between p-6 md:p-8 bg-white/5 hover:bg-white/10 rounded-[24px] md:rounded-[32px] border border-white/5 transition-all group">
-                                 <div className="flex items-center gap-4 md:gap-6">
-                                    <div className="w-12 h-12 md:w-16 md:h-16 rounded-[20px] md:rounded-[24px] bg-white/5 flex items-center justify-center border border-white/10 text-white/40">
-                                       <TypeIcon className="w-6 md:w-7 h-6 md:h-7" />
+                              {/* SRT Export */}
+                              <div className="neu-flat p-6 rounded-2xl flex items-center justify-between group border border-transparent hover:border-[#fe7f2d]/20 transition-all">
+                                 <div className="flex items-center gap-6">
+                                    <div className="w-14 h-14 neu-pressed rounded-full flex items-center justify-center text-[#94a3b8]">
+                                       <TypeIcon className="w-6 h-6" />
                                     </div>
-                                    <div className="text-left">
-                                       <div className="font-black text-base md:text-lg uppercase tracking-tight group-hover:text-emerald-400 transition-colors">Synced Captions</div>
-                                       <div className="text-[9px] md:text-[10px] text-white/30 font-mono font-bold uppercase tracking-widest mt-1">SRT • Time-synced • {state.recap.events.length} Lines</div>
+                                    <div>
+                                       <div className="font-bold text-[#e0e6ed]">Subtitles</div>
+                                       <div className="text-[10px] text-[#94a3b8] font-mono mt-1">SRT • Time-synced</div>
                                     </div>
                                  </div>
-                                 <Download className="w-4 md:w-5 h-4 md:h-5 text-white/20 group-hover:text-white transition-all" />
-                              </button>
+                                 <NeuButton variant="icon" onClick={exportSRT}>
+                                    <Download className="w-5 h-5" />
+                                 </NeuButton>
+                              </div>
                            </div>
                         </div>
                      </div>
 
-                     <div className="space-y-6 md:space-y-8 flex flex-col">
-                        <div className="bg-white/[0.03] border border-white/10 rounded-[32px] md:rounded-[48px] p-6 md:p-10 backdrop-blur-3xl shadow-3xl h-full">
-                           <h3 className="text-lg md:text-xl font-black mb-6 md:mb-8 flex items-center gap-3 text-white/80 uppercase tracking-widest"><LayoutDashboard className="w-5 md:w-6 h-5 md:h-6 text-blue-400" /> Catalog Details</h3>
+                     <div className="flex flex-col gap-8">
+                        <div className="neu-flat p-8 rounded-[32px] h-full">
+                           <h3 className="text-lg font-bold text-[#e0e6ed] mb-8 flex items-center gap-3"><LayoutDashboard className="w-5 h-5 text-[#fe7f2d]" /> Metadata</h3>
                            
-                           <div className="space-y-6 md:space-y-8">
+                           <div className="space-y-8">
                               <CopyableField 
-                                label="Movie Identity" 
+                                label="Title" 
                                 text={state.movieTitle} 
                                 isInput={true}
                                 onUpdate={(val) => setState(prev => ({...prev, movieTitle: val}))}
                               />
                               
                               <div>
-                                <label className="text-[9px] md:text-[10px] font-black text-white/30 uppercase tracking-[0.2em] block mb-4">Optimized Titles</label>
+                                <label className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest block mb-4 ml-1">Viral Titles</label>
                                 <div className="space-y-3">
                                   {state.recap.titleOptions?.map((opt, i) => (
                                     <CopyableField key={i} text={opt} />
@@ -1366,51 +1346,37 @@ Viral Titles: ${state.recap.titleOptions?.join(', ')}
                                 </div>
                               </div>
 
-                              <div className="grid grid-cols-2 gap-4 md:gap-5">
+                              <div className="grid grid-cols-2 gap-5">
                                 <CopyableField label="Genre" text={state.recap.genre || 'Undefined'} />
-                                <div className="bg-black/30 p-3 md:p-4 rounded-xl md:rounded-2xl border border-white/5 flex flex-col justify-center">
-                                   <span className="text-[8px] md:text-[10px] text-white/30 uppercase font-black tracking-widest mb-1">Runtime</span>
-                                   <span className="text-white font-black text-base md:text-lg font-mono">{state.metadata?.formattedDuration}</span>
+                                <div className="neu-pressed p-3 rounded-xl flex flex-col justify-center px-4">
+                                   <span className="text-[10px] text-[#94a3b8] uppercase font-bold tracking-widest mb-1">Runtime</span>
+                                   <span className="text-[#e0e6ed] font-bold font-mono">{state.metadata?.formattedDuration}</span>
                                 </div>
                               </div>
 
-                              <CopyableField label="The Hook (Logline)" text={state.recap.logline || '---'} multiline={true} />
-                              <CopyableField label="Plot Summary" text={state.recap.summary} multiline={true} />
+                              <CopyableField label="Hook" text={state.recap.logline || '---'} multiline={true} />
+                              <CopyableField label="Summary" text={state.recap.summary} multiline={true} />
+                              
+                              {state.recap.hashtags && (
+                                <CopyableField 
+                                  label="Hashtags" 
+                                  text={state.recap.hashtags.join(' ')} 
+                                  multiline={true} 
+                                />
+                              )}
                            </div>
                         </div>
 
-                        <div className="flex gap-4">
-                           <GlassButton 
-                             onClick={() => { setState(prev => ({...prev, videoUrl: null, videoBlob: null, recap: null, audioUrl: null, metadata: null})); setStep(Step.Upload); setManualScript(''); setLinkUrl(''); }} 
-                             className="w-full bg-white/5 border-white/10 hover:bg-white/10 !text-white/40 hover:!text-white !text-[10px] font-black uppercase tracking-widest py-4 md:py-5"
-                           >
-                              New Project Session
-                           </GlassButton>
-                        </div>
+                        <NeuButton onClick={handleResetStudio} className="w-full !py-4 text-xs uppercase tracking-widest">
+                           Start New Project
+                        </NeuButton>
                      </div>
                   </div>
                </div>
             )}
-          </GlassCard>
+          </NeuCard>
         </div>
       </div>
-      
-      <style>{`
-        .bg-noise {
-          background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-        }
-        .mask-linear-fade {
-           mask-image: linear-gradient(to bottom, black 90%, transparent 100%);
-        }
-        @keyframes typing {
-          from { opacity: 0; transform: translateY(5px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .typing-effect {
-          display: inline-block;
-          animation: typing 0.5s ease-out forwards;
-        }
-      `}</style>
     </div>
   );
 };

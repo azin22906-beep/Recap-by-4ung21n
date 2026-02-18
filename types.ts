@@ -39,6 +39,8 @@ export interface RecapData {
   characters: { name: string; description: string }[];
   script: string;
   unclearPoints?: string[];
+  cta?: string; // Call to Action
+  hashtags?: string[]; // 5 viral hashtags
 }
 
 export interface AudioSettings {
