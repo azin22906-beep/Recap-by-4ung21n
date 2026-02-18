@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Step, GenerationState, VideoMetadata, RecapData, Voice } from './types';
 import { VOICES, NARRATIVE_STYLES } from './constants';
@@ -165,6 +166,10 @@ const CopyableField: React.FC<CopyableFieldProps> = ({ label, text, onUpdate, is
 // --- Main App ---
 
 const App: React.FC = () => {
+  const [apiKey, setApiKey] = useState<string>('');
+  const [isApiKeySet, setIsApiKeySet] = useState<boolean>(false);
+  const [inputApiKey, setInputApiKey] = useState<string>('');
+
   const [step, setStep] = useState<Step>(Step.Upload);
   const [genderFilter, setGenderFilter] = useState<'all' | 'male' | 'female'>('all');
   const [isUpdatingAudio, setIsUpdatingAudio] = useState(false);
@@ -212,6 +217,32 @@ const App: React.FC = () => {
     isMirrored: false,
     originalMuted: true
   });
+
+  // --- API Key Management ---
+  useEffect(() => {
+    const storedKey = localStorage.getItem('4ung21n_api_key');
+    if (storedKey) {
+      setApiKey(storedKey);
+      setIsApiKeySet(true);
+    }
+  }, []);
+
+  const handleSaveApiKey = () => {
+    if (inputApiKey.trim()) {
+      localStorage.setItem('4ung21n_api_key', inputApiKey.trim());
+      setApiKey(inputApiKey.trim());
+      setIsApiKeySet(true);
+      setErrorMessage(null);
+    }
+  };
+
+  const handleRemoveApiKey = () => {
+    localStorage.removeItem('4ung21n_api_key');
+    setApiKey('');
+    setIsApiKeySet(false);
+    setInputApiKey('');
+    handleResetStudio();
+  };
 
   // --- Auto-Save & Restore Logic ---
 
@@ -417,7 +448,7 @@ const App: React.FC = () => {
     setErrorMessage(null);
     try {
       const styleObj = NARRATIVE_STYLES.find(s => s.id === selectedNarrativeStyle)!;
-      const rewritten = await regenerateScriptWithStyle(state.recap.script, styleObj.label, styleObj.description);
+      const rewritten = await regenerateScriptWithStyle(apiKey, state.recap.script, styleObj.label, styleObj.description);
       setState(prev => ({
         ...prev,
         recap: prev.recap ? { ...prev.recap, script: rewritten } : null
@@ -483,7 +514,7 @@ const App: React.FC = () => {
     
     setPreviewingVoice(voice.id);
     try {
-      const rawAudioBase64 = await generateTTS(voice.previewText, voice.voiceEngine, "Clear and neutral", voice.styleHint);
+      const rawAudioBase64 = await generateTTS(apiKey, voice.previewText, voice.voiceEngine, "Clear and neutral", voice.styleHint);
       const wavUrl = wrapPcmInWav(rawAudioBase64.split(',')[1]);
       if (previewAudioRef.current) {
         previewAudioRef.current.src = wavUrl;
@@ -517,7 +548,7 @@ const App: React.FC = () => {
     try {
       const currentScript = state.recap.script;
       const selectedVoice = VOICES.find(v => v.id === state.selectedVoiceId)!;
-      const rawAudioBase64 = await generateTTS(currentScript, selectedVoice.voiceEngine, state.styleInstructions, selectedVoice.styleHint);
+      const rawAudioBase64 = await generateTTS(apiKey, currentScript, selectedVoice.voiceEngine, state.styleInstructions, selectedVoice.styleHint);
       const wavUrl = wrapPcmInWav(rawAudioBase64.split(',')[1]);
       setState(prev => ({ ...prev, audioUrl: wavUrl }));
       setLastSyncedScript(currentScript);
@@ -563,7 +594,7 @@ const App: React.FC = () => {
 
       setLoadingStep(2); 
       
-      const { metadata, recap } = await analyzeVideo(base64, state.videoBlob.type, state.metadata.duration, state.narrativePerspective);
+      const { metadata, recap } = await analyzeVideo(apiKey, base64, state.videoBlob.type, state.metadata.duration, state.narrativePerspective);
       
       clearInterval(interval);
       setProgress(100);
@@ -733,6 +764,52 @@ Hashtags: ${state.recap.hashtags?.join(' ') || ''}
   const filteredVoices = VOICES.filter(v => genderFilter === 'all' || v.gender === genderFilter);
   const isOutOfSync = state.recap?.script !== lastSyncedScript;
 
+  // --- Render API Key Input Screen if not set ---
+  if (!isApiKeySet) {
+    return (
+      <div className="min-h-screen font-sans bg-[#233d4d] flex items-center justify-center p-4">
+        <div className="w-full max-w-md animate-in zoom-in-95 duration-500">
+           <div className="neu-flat p-8 rounded-[32px] text-center">
+              <div className="w-20 h-20 neu-pressed rounded-full flex items-center justify-center mx-auto mb-6 text-[#fe7f2d]">
+                <Key className="w-10 h-10" />
+              </div>
+              <h1 className="text-2xl font-bold text-[#e0e6ed] mb-2">Welcome to 4ung21n</h1>
+              <p className="text-[#94a3b8] text-sm mb-8">Please enter your Google Gemini API Key to continue. Your key is stored locally in your browser.</p>
+              
+              <div className="space-y-4 mb-8">
+                 <input 
+                    type="password"
+                    value={inputApiKey}
+                    onChange={(e) => setInputApiKey(e.target.value)}
+                    placeholder="Paste API Key here..."
+                    className="w-full neu-pressed px-6 py-4 rounded-xl text-[#e0e6ed] focus:outline-none focus:text-[#fe7f2d] transition-colors text-center placeholder-[#94a3b8]/50 bg-transparent border-none"
+                 />
+                 <a 
+                    href="https://aistudio.google.com/app/apikey" 
+                    target="_blank" 
+                    rel="noreferrer"
+                    className="text-xs text-[#fe7f2d] hover:underline flex items-center justify-center gap-1"
+                 >
+                    Get a free key from Google AI Studio <ExternalLink className="w-3 h-3" />
+                 </a>
+              </div>
+
+              <NeuButton variant="primary" onClick={handleSaveApiKey} disabled={!inputApiKey.trim()} className="w-full">
+                Enter Studio
+              </NeuButton>
+              
+              {errorMessage && (
+                 <p className="text-red-400 text-xs mt-4">{errorMessage}</p>
+              )}
+           </div>
+           <p className="text-center text-[#94a3b8]/30 text-[10px] mt-8 uppercase tracking-widest font-bold">Powered by Gemini 1.5 Pro</p>
+        </div>
+      </div>
+    );
+  }
+
+  // --- Main Render ---
+
   return (
     <div className="min-h-screen font-sans selection:bg-[#fe7f2d]/30 relative pb-10">
       <audio ref={previewAudioRef} onEnded={() => setPreviewingVoice(null)} className="hidden" />
@@ -785,6 +862,9 @@ Hashtags: ${state.recap.hashtags?.join(' ') || ''}
             </div>
             
             <div className="flex items-center gap-3 relative">
+              <NeuButton variant="secondary" onClick={handleRemoveApiKey} className="!py-2 !px-4 text-xs tracking-widest uppercase" title="Change API Key">
+                 <Key className="w-3 h-3 mr-2" /> Key
+              </NeuButton>
               {step !== Step.Upload && (
                 <NeuButton variant="secondary" onClick={handleResetStudio} className="!py-2 !px-4 text-xs tracking-widest uppercase">
                    <RefreshCw className="w-3 h-3 mr-2" /> Reset

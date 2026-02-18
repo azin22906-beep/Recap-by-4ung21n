@@ -3,8 +3,8 @@ import { GoogleGenAI, Type, Modality } from "@google/genai";
 import { SYSTEM_PROMPT } from "../constants";
 import { VideoMetadata, RecapData } from "../types";
 
-export async function analyzeVideo(videoBase64: string, mimeType: string, duration: number, perspective: 'first_person' | 'third_person' = 'third_person'): Promise<{ metadata: VideoMetadata, recap: RecapData }> {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+export async function analyzeVideo(apiKey: string, videoBase64: string, mimeType: string, duration: number, perspective: 'first_person' | 'third_person' = 'third_person'): Promise<{ metadata: VideoMetadata, recap: RecapData }> {
+  const ai = new GoogleGenAI({ apiKey });
   const model = "gemini-3-pro-preview";
   
   const perspectiveInstruction = perspective === 'first_person' 
@@ -128,8 +128,8 @@ export async function analyzeVideo(videoBase64: string, mimeType: string, durati
   return JSON.parse(text);
 }
 
-export async function regenerateScriptWithStyle(originalScript: string, styleLabel: string, styleDescription: string): Promise<string> {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+export async function regenerateScriptWithStyle(apiKey: string, originalScript: string, styleLabel: string, styleDescription: string): Promise<string> {
+  const ai = new GoogleGenAI({ apiKey });
   const model = "gemini-3-pro-preview";
   
   const prompt = `
@@ -217,8 +217,8 @@ export async function regenerateScriptWithStyle(originalScript: string, styleLab
   return text;
 }
 
-export async function generateTTS(text: string, voiceEngine: string, styleInstructions: string, styleHint: string = ''): Promise<string> {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+export async function generateTTS(apiKey: string, text: string, voiceEngine: string, styleInstructions: string, styleHint: string = ''): Promise<string> {
+  const ai = new GoogleGenAI({ apiKey });
   const model = "gemini-2.5-flash-preview-tts";
   
   // Keep the prompt clear and focused on text-to-speech
