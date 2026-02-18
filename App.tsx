@@ -647,19 +647,44 @@ const App: React.FC = () => {
     let srtContent = '';
     const events = state.recap.events;
     events.forEach((event, index) => {
-      const startTimeParts = event.time.split(':');
-      const startSec = parseInt(startTimeParts[0]) * 60 + parseInt(startTimeParts[1]);
+      // Robust regex parsing for timestamps like "01:23", "1:23", or even "01:23:00"
+      const match = event.time.match(/(\d+):(\d+)/);
+      let startSec = 0;
+      if (match) {
+        startSec = parseInt(match[1]) * 60 + parseInt(match[2]);
+      } else {
+        // Fallback or error log if format is totally unexpected
+        console.warn(`Could not parse timestamp: ${event.time}`);
+      }
+
       const nextEvent = events[index + 1];
-      const endSec = nextEvent 
-        ? (parseInt(nextEvent.time.split(':')[0]) * 60 + parseInt(nextEvent.time.split(':')[1]))
-        : state.metadata!.duration;
+      let endSec = state.metadata!.duration;
+
+      if (nextEvent) {
+          const nextMatch = nextEvent.time.match(/(\d+):(\d+)/);
+          if (nextMatch) {
+              endSec = parseInt(nextMatch[1]) * 60 + parseInt(nextMatch[2]);
+          }
+      }
+
       const formatTime = (seconds: number) => {
         const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
         const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
         const s = Math.floor(seconds % 60).toString().padStart(2, '0');
-        return `${m}:${s},000`;
+        return `${m}:${s},000`; // Standard SRT format MM:SS,ms or HH:MM:SS,ms. Here limiting to 2 digits for hours effectively.
       };
-      srtContent += `${index + 1}\n${formatTime(startSec)} --> ${formatTime(endSec)}\n${event.description}\n\n`;
+      
+      // Ensure strict Srt format usually needs HH:MM:SS,ms
+      // The previous helper was sufficient for short videos but let's be standard
+      const formatTimeStandard = (seconds: number) => {
+         const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
+         const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
+         const s = Math.floor(seconds % 60).toString().padStart(2, '0');
+         const ms = '000';
+         return `${h}:${m}:${s},${ms}`;
+      };
+
+      srtContent += `${index + 1}\n${formatTimeStandard(startSec)} --> ${formatTimeStandard(endSec)}\n${event.description}\n\n`;
     });
     const blob = new Blob([srtContent], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);

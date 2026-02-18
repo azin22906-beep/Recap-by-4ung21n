@@ -1,5 +1,5 @@
 
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI, Type, Modality } from "@google/genai";
 import { SYSTEM_PROMPT } from "../constants";
 import { VideoMetadata, RecapData } from "../types";
 
@@ -66,7 +66,8 @@ export async function analyzeVideo(videoBase64: string, mimeType: string, durati
               category: { type: Type.STRING },
               categoryConfidence: { type: Type.STRING, description: "Confidence score 1-5" },
               endingStyle: { type: Type.STRING, enum: ["Finished", "Abruptly cut", "Uncertain"] }
-            }
+            },
+            required: ["detectedLanguage", "category", "endingStyle"]
           },
           recap: {
             type: Type.OBJECT,
@@ -85,9 +86,10 @@ export async function analyzeVideo(videoBase64: string, mimeType: string, durati
                 items: {
                   type: Type.OBJECT,
                   properties: {
-                    time: { type: Type.STRING },
+                    time: { type: Type.STRING, description: "Timestamp in MM:SS format (e.g., 01:23)" },
                     description: { type: Type.STRING }
-                  }
+                  },
+                  required: ["time", "description"]
                 }
               },
               characters: {
@@ -112,9 +114,11 @@ export async function analyzeVideo(videoBase64: string, mimeType: string, durati
                 items: { type: Type.STRING },
                 description: "5 viral hashtags mixed Burmese/English"
               }
-            }
+            },
+            required: ["movieTitle", "script", "events", "summary"]
           }
-        }
+        },
+        required: ["metadata", "recap"]
       }
     }
   });
@@ -224,7 +228,7 @@ export async function generateTTS(text: string, voiceEngine: string, styleInstru
     model,
     contents: [{ parts: [{ text: fullPrompt }] }],
     config: {
-      responseModalities: ["AUDIO"], // Using string literal to ensure compatibility
+      responseModalities: [Modality.AUDIO],
       speechConfig: {
         voiceConfig: {
           prebuiltVoiceConfig: { voiceName: voiceEngine },
